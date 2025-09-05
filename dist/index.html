@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SquareQuber</title>
+    <style>:root{--bg:#0f172a;--fg:#e5e7eb;--accent:#38bdf8;--muted:#94a3b8}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;color:var(--fg);background:var(--bg)}
+.app-header{display:flex;align-items:center;gap:.75rem;padding:1rem;border-bottom:1px solid #1f2937}
+h1{font-size:1.25rem;margin:0}
+main{padding:1rem;max-width:720px}
+button{background:var(--accent);color:#002533;border:0;border-radius:.5rem;padding:.5rem .75rem;cursor:pointer}
+button:hover{filter:brightness(1.05)}
+#output{margin-top:1rem;color:var(--muted)}
+
+</style>
+    <link rel="icon" href="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjgiIGhlaWdodD0iMTI4IiB2aWV3Qm94PSIwIDAgMTI4IDEyOCI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzM4YmRmOCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMyMmQzZWUiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMTIiIGhlaWdodD0iMTEyIiB4PSI4IiB5PSI4IiByeD0iMTQiIHJ5PSIxNCIgZmlsbD0idXJsKCNnKSIvPgogIDxyZWN0IHdpZHRoPSI0NCIgaGVpZ2h0PSI0NCIgeD0iMjIiIHk9IjIyIiByeD0iNiIgcnk9IjYiIGZpbGw9IiMwZjE3MmEiIG9wYWNpdHk9Ii45Ii8+CiAgPHJlY3Qgd2lkdGg9IjQ0IiBoZWlnaHQ9IjQ0IiB4PSI2MiIgeT0iNjIiIHJ4PSI2IiByeT0iNiIgZmlsbD0iIzBmMTcyYSIgb3BhY2l0eT0iLjkiLz4KICA8Y2lyY2xlIGN4PSI2NCIgY3k9IjY0IiByPSI2IiBmaWxsPSIjMGYxNzJhIi8+Cjwvc3ZnPgoK" />
+  </head>
+  <body>
+    <header class="app-header">
+      <img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjgiIGhlaWdodD0iMTI4IiB2aWV3Qm94PSIwIDAgMTI4IDEyOCI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzM4YmRmOCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMyMmQzZWUiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMTIiIGhlaWdodD0iMTEyIiB4PSI4IiB5PSI4IiByeD0iMTQiIHJ5PSIxNCIgZmlsbD0idXJsKCNnKSIvPgogIDxyZWN0IHdpZHRoPSI0NCIgaGVpZ2h0PSI0NCIgeD0iMjIiIHk9IjIyIiByeD0iNiIgcnk9IjYiIGZpbGw9IiMwZjE3MmEiIG9wYWNpdHk9Ii45Ii8+CiAgPHJlY3Qgd2lkdGg9IjQ0IiBoZWlnaHQ9IjQ0IiB4PSI2MiIgeT0iNjIiIHJ4PSI2IiByeT0iNiIgZmlsbD0iIzBmMTcyYSIgb3BhY2l0eT0iLjkiLz4KICA8Y2lyY2xlIGN4PSI2NCIgY3k9IjY0IiByPSI2IiBmaWxsPSIjMGYxNzJhIi8+Cjwvc3ZnPgoK" alt="Logo" width="48" height="48" />
+      <h1>SquareQuber</h1>
+    </header>
+    <main id="app">
+      <p>Alles läuft in dieser einen Seite – keine Netzwerkzugriffe.</p>
+      <button id="actionBtn">Quadrat berechnen</button>
+      <div id="output" aria-live="polite"></div>
+    </main>
+    <script>(() => {
+  const $ = (sel) => document.querySelector(sel);
+  const btn = $('#actionBtn');
+  const out = $('#output');
+
+  btn.addEventListener('click', () => {
+    const n = Math.floor(Math.random() * 13) + 2; // 2..14
+    const sq = n * n;
+    out.textContent = `Das Quadrat von ${n} ist ${sq}.`;
+  });
+})();
+
+</script>
+  </body>
+  </html>
+
