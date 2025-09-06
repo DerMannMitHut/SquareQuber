@@ -571,13 +571,24 @@ function init() {
     dbg('start');
     let out = { ok: false, reason: 'cancel' };
     try {
-      out = await solveRemainingAsync(state, (stats, preview) => {
-        state.solverPreview = preview;
+      // Pick best symmetry transform to normalize pre-filled board
+      const tf = chooseBestTransform(state.board);
+      if (DEBUG) dbg('transform', { rot: tf.rot, rotDeg: tf.rot * 90, mirror: tf.mirror, sum: tf.sum });
+      // Build a working state in transformed space
+      const work = buildTransformedState(state, tf);
+      // Wire cancel from UI state to working solver state
+      state._cancelSolve = () => { if (work._cancelSolve) work._cancelSolve(); };
+      out = await solveRemainingAsync(work, (stats, preview) => {
+        // Map preview blocks back to UI space (use inverse-corners min)
+        const mapped = preview.map(p => { const t = invRectTopLeft(tf, p.x, p.y, p.size); return { x: t.x, y: t.y, size: p.size }; });
+        state.solverPreview = mapped;
         const nodes = Number(stats.nodes).toLocaleString('en-US');
-        if (solveStatusEl) solveStatusEl.textContent = `Auto-Fill: Nodes ${nodes} • Depth ${stats.depth} • Placed ${preview.length}`;
+        if (solveStatusEl) solveStatusEl.textContent = `Auto-Fill: Nodes ${nodes} • Depth ${stats.depth} • Placed ${mapped.length}`;
         renderer.requestDraw();
         if (DEBUG) dbg('tick', { nodes: stats.nodes, depth: stats.depth, placed: preview.length });
       }, DEBUG ? (type, payload) => dbg(type, payload) : null);
+      // Apply solution from work state back to UI state
+      if (out.ok) applySolutionFromWork(state, work, tf);
     } catch (err) {
       dbg('error', err);
       if (solveStatusEl) solveStatusEl.textContent = 'Auto-Fill error (see console).';
@@ -765,6 +776,140 @@ function shuffleInPlace(arr) {
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
+}
+
+// ---------- Transform helpers ----------
+function makeTransform(n, rot, mirror) {
+  const rotN = ((rot % 4) + 4) % 4;
+  const map = (x, y) => {
+    let xi = x, yi = y;
+    if (mirror) xi = n - 1 - xi; // mirror across vertical axis
+    for (let i = 0; i < rotN; i++) {
+      const tx = n - 1 - yi;
+      const ty = xi;
+      xi = tx; yi = ty;
+    }
+    return { x: xi, y: yi };
+  };
+  const inv = (x, y) => {
+    let xi = x, yi = y;
+    // inverse rotation: rotate CCW rotN times (inverse of CW rotN)
+    for (let i = 0; i < rotN; i++) {
+      const tx = yi;
+      const ty = n - 1 - xi;
+      xi = tx; yi = ty;
+    }
+    // inverse of mirror is mirror again
+    if (mirror) xi = n - 1 - xi;
+    return { x: xi, y: yi };
+  };
+  return {
+    rot: rotN, mirror,
+    map,
+    inv,
+    invX: (x) => inv(x, 0).x,
+    invY: (y) => inv(0, y).y,
+  };
+}
+
+function chooseBestTransform(board) {
+  const n = board.size;
+  let best = null; let bestSum = Infinity;
+  for (let r = 0; r < 4; r++) {
+    for (let m of [false, true]) {
+      const tf = makeTransform(n, r, m);
+      let sum = 0;
+      for (let y = 0; y < n; y++) {
+        for (let x = 0; x < n; x++) {
+          const id = board.cells[y][x];
+          if (!id) continue;
+          const t = tf.map(x, y);
+          sum += t.x + t.y*n;
+        }
+      }
+      if (sum < bestSum) { bestSum = sum; best = tf; }
+    }
+  }
+  if (!best) best = makeTransform(board.size, 0, false);
+  best.sum = bestSum;
+  return best;
+}
+
+// Map a square block (top-left x,y with size s) through tf.map and return the
+// top-left of the transformed block (min over transformed corners).
+function mapRectTopLeft(tf, x, y, s) {
+  const c1 = tf.map(x, y);
+  const c2 = tf.map(x + s - 1, y);
+  const c3 = tf.map(x, y + s - 1);
+  const c4 = tf.map(x + s - 1, y + s - 1);
+  const minX = Math.min(c1.x, c2.x, c3.x, c4.x);
+  const minY = Math.min(c1.y, c2.y, c3.y, c4.y);
+  return { x: minX, y: minY };
+}
+
+// Map a square block (top-left x,y with size s) through tf.inv and return the
+// top-left of the transformed block (min over transformed corners).
+function invRectTopLeft(tf, x, y, s) {
+  const c1 = tf.inv(x, y);
+  const c2 = tf.inv(x + s - 1, y);
+  const c3 = tf.inv(x, y + s - 1);
+  const c4 = tf.inv(x + s - 1, y + s - 1);
+  const minX = Math.min(c1.x, c2.x, c3.x, c4.x);
+  const minY = Math.min(c1.y, c2.y, c3.y, c4.y);
+  return { x: minX, y: minY };
+}
+
+function buildTransformedState(state, tf) {
+  // Deep clone board and apply transform to cells
+  const n = state.board.size;
+  const clonedCells = Array.from({ length: n }, () => Array(n).fill(0));
+  let filled = 0;
+  for (let y = 0; y < n; y++) {
+    for (let x = 0; x < n; x++) {
+      const id = state.board.cells[y][x];
+      if (!id) continue;
+      const t = tf.map(x, y);
+      clonedCells[t.y][t.x] = id;
+      filled++;
+    }
+  }
+  const workBoard = {
+    size: n,
+    cells: clonedCells,
+    filled,
+    // No-op place: solver's finalization toggles piece.placed and uses steps; we don't need to mutate cells here.
+    place: () => {},
+    remove: () => {},
+  };
+  // Clone inventory and transform placed piece coordinates (top-left of block)
+  const workInv = state.inventory.map(p => ({ ...p }));
+  for (const p of workInv) {
+    if (p.placed) {
+      const t = mapRectTopLeft(tf, p.x, p.y, p.size);
+      p.x = t.x; p.y = t.y;
+    }
+  }
+  return {
+    board: workBoard,
+    inventory: workInv,
+    _cancelSolve: null,
+    pushStep: () => {}, // solver doesn't rely on this when returning placements
+  };
+}
+
+function applySolutionFromWork(state, work, tf) {
+  const steps = [];
+  // For each placed piece in work, map back and place into UI state if not already placed
+  for (const wp of work.inventory) {
+    if (!wp.placed) continue;
+    const up = state.inventory.find(p => p.id === wp.id);
+    if (!up || up.placed) continue;
+    const back = invRectTopLeft(tf, wp.x, wp.y, wp.size);
+    up.x = back.x; up.y = back.y; up.placed = true;
+    state.board.place(up, up.x, up.y);
+    steps.push({ pieceId: up.id, fromX: 0, fromY: 0, fromPlaced: false, toX: up.x, toY: up.y, toPlaced: true });
+  }
+  if (steps.length) state.pushStep({ batch: true, steps });
 }
 
 // Place the next available piece of given size at the first non-overlapping board position
