@@ -396,8 +396,9 @@ function init() {
   const state = new GameState();
   const renderer = new Renderer(canvas, state);
   const versionEl = document.getElementById('version');
-  if (versionEl && window.__APP_VERSION__) {
-    versionEl.textContent = `v${window.__APP_VERSION__}`;
+  if (versionEl) {
+    const ver = window.__APP_VERSION__ || 'dev';
+    versionEl.textContent = `v${ver}`;
   }
 
   function updateStatus(overlap) {

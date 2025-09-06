@@ -42,7 +42,9 @@ fi
 
 node -e "const fs=require('fs');const p=require('./package.json');p.version='${NEW}';fs.writeFileSync('package.json', JSON.stringify(p,null,2)+'\n');console.log('version -> ${NEW}')"
 
-git add package.json
-git commit -m "chore(release): v${NEW}"
-echo "Bumped to v${NEW}. Push with: git push"
+# Rebuild single-file output so the injected version matches
+npm run --silent build || scripts/build
 
+git add package.json dist/SquareQuber.html
+git commit -m "chore(release): v${NEW}"
+echo "Bumped to v${NEW} and rebuilt dist/SquareQuber.html. Push with: git push"
