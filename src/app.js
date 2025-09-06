@@ -397,10 +397,36 @@ function init() {
       span.textContent = `x${remain}`;
       div.appendChild(span);
       if (remain > 0) {
-        div.addEventListener('pointerdown', (e) => {
+        // Click/tap to auto-place at first available non-overlapping position
+        div.addEventListener('click', (e) => {
           e.preventDefault();
-          const piece = state.inventory.find((p) => p.size === size && !p.placed);
-          if (piece) drag.startFromInventory(piece, e);
+          autoPlaceFirstFit(state, size);
+          renderInventory();
+          renderer.requestDraw();
+          updateStatus(false);
+        });
+        // Drag with move threshold to avoid accidental drags on tap
+        div.addEventListener('pointerdown', (e) => {
+          const startX = e.clientX;
+          const startY = e.clientY;
+          let started = false;
+          const move = (ev) => {
+            const dx = ev.clientX - startX;
+            const dy = ev.clientY - startY;
+            if (!started && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
+              started = true;
+              const piece = state.inventory.find((p) => p.size === size && !p.placed);
+              if (piece) drag.startFromInventory(piece, ev);
+            }
+          };
+          const up = () => {
+            window.removeEventListener('pointermove', move);
+            window.removeEventListener('pointerup', up);
+            window.removeEventListener('pointercancel', up);
+          };
+          window.addEventListener('pointermove', move);
+          window.addEventListener('pointerup', up);
+          window.addEventListener('pointercancel', up);
         });
       }
       invEl.appendChild(div);
@@ -502,7 +528,7 @@ function init() {
 }
 
 // Auto-start when included as a module or plain script at the end of body
-init();
+  init();
 
 // -------------------- Solver --------------------
 function solveRemaining(state) {
@@ -663,3 +689,31 @@ async function solveRemainingAsync(state, onTick) {
 }
 
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+
+// Place the next available piece of given size at the first non-overlapping board position
+function autoPlaceFirstFit(state, size) {
+  const piece = state.inventory.find((p) => p.size === size && !p.placed);
+  if (!piece) return false;
+  const board = state.board;
+  for (let y = 0; y <= board.size - size; y++) {
+    for (let x = 0; x <= board.size - size; x++) {
+      if (canPlace(board, piece, x, y)) {
+        piece.x = x;
+        piece.y = y;
+        piece.placed = true;
+        board.place(piece, x, y);
+        state.pushStep({
+          pieceId: piece.id,
+          fromX: 0,
+          fromY: 0,
+          fromPlaced: false,
+          toX: x,
+          toY: y,
+          toPlaced: true,
+        });
+        return true;
+      }
+    }
+  }
+  return false;
+}
