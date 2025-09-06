@@ -216,6 +216,8 @@ function init() {
       this.origY = 0;
       this.wasPlaced = false;
       canvas.addEventListener('pointerdown', (e) => this.onCanvasDown(e));
+      // Right-click to put a tile back into inventory
+      canvas.addEventListener('contextmenu', (e) => this.onContextMenu(e));
     }
     start(piece, px, py) {
       this.active = piece;
@@ -245,6 +247,32 @@ function init() {
       const px = e.clientX - rect.left - piece.x * cs;
       const py = e.clientY - rect.top - piece.y * cs;
       this.start(piece, px, py);
+    }
+    onContextMenu(e) {
+      e.preventDefault();
+      const rect = this.canvas.getBoundingClientRect();
+      const cs = this.renderer.cellSize;
+      const x = Math.floor((e.clientX - rect.left) / cs);
+      const y = Math.floor((e.clientY - rect.top) / cs);
+      const piece = this.state.inventory.find(
+        (p) => p.placed && x >= p.x && x < p.x + p.size && y >= p.y && y < p.y + p.size
+      );
+      if (!piece) return;
+      // Remove from board, keep in inventory
+      this.state.board.remove(piece);
+      const fromX = piece.x, fromY = piece.y;
+      piece.placed = false;
+      this.state.pushStep({
+        pieceId: piece.id,
+        fromX, fromY,
+        fromPlaced: true,
+        toX: 0,
+        toY: 0,
+        toPlaced: false,
+      });
+      this.inventoryCb();
+      this.statusCb(false);
+      this.renderer.requestDraw();
     }
     startFromInventory(piece, e) {
       const cs = this.renderer.cellSize;
@@ -288,7 +316,20 @@ function init() {
           toY: piece.y,
           toPlaced: true
         });
+      } else if (pr && !this.state.board.inBounds(pr.x, pr.y, piece.size) && this.wasPlaced) {
+        // Dropped outside the board: return to inventory if it was previously placed
+        piece.placed = false;
+        this.state.pushStep({
+          pieceId: piece.id,
+          fromX: this.origX,
+          fromY: this.origY,
+          fromPlaced: true,
+          toX: 0,
+          toY: 0,
+          toPlaced: false,
+        });
       } else {
+        // Invalid placement (overlap or out-of-bounds from inventory): revert
         piece.x = this.origX;
         piece.y = this.origY;
         piece.placed = this.wasPlaced;
