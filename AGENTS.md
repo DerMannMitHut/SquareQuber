@@ -55,8 +55,7 @@ Note: If wrappers don’t exist yet, add thin scripts that call your toolchain (
   4) Enable GitHub Pages: Settings → Pages → Source: Deploy from a branch → `main` / `/docs`.
      Your app will be available at `https://<user>.github.io/<repo>/` (e.g., `https://DerMannMitHut.github.io/SquareQuber/`).
 
-## CI: Docs Auto‑Publish
-- Workflow: `.github/workflows/build.yml` builds the single file and updates `docs/` on every push to `main`.
-- Guard: The job skips when the actor is the GitHub Actions bot, avoiding infinite loops.
-- Commit: Uses `[skip ci]` in the message to prevent re-triggering other workflows.
+## Local Hooks
+- Pre-commit: Builds the single-file app and updates `docs/` so GitHub Pages stays in sync. Ensure hooks are enabled via `git config core.hooksPath .githooks`.
+- Pre-push: Enforces SemVer bump in `package.json` before pushing to the remote.
      - Hooks path is set to `.githooks` by repo config; if needed, run `git config core.hooksPath .githooks`.

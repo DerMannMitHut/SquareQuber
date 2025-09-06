@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Pre-commit: build single-file output and GitHub Pages docs, then stage them
+
+if command -v node >/dev/null 2>&1; then
+  echo "[pre-commit] Building single-file app and docs..." >&2
+  node scripts/build.mjs
+  # Stage generated artifacts so they are included in the commit
+  git add dist/SquareQuber.html docs/index.html docs/SquareQuber.html 2>/dev/null || true
+else
+  echo "[pre-commit] Node.js not found. Skipping build." >&2
+fi
+
+exit 0
+
