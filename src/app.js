@@ -153,64 +153,82 @@ function init() {
       const ctx = this.ctx;
       const cs = this.cellSize;
       const sizePx = BOARD_SIZE * cs;
+      // Background
       ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
       ctx.fillStyle = '#1e293b';
       ctx.fillRect(0, 0, sizePx, sizePx);
-      // Always draw grid
-      ctx.strokeStyle = GRID_COLOR;
-      ctx.lineWidth = 1;
-      for (let i = 0; i <= BOARD_SIZE; i++) {
-        const p = i * cs;
-        ctx.beginPath();
-        ctx.moveTo(p, 0);
-        ctx.lineTo(p, sizePx);
-        ctx.moveTo(0, p);
-        ctx.lineTo(sizePx, p);
-        ctx.stroke();
-      }
-      for (const piece of this.state.inventory) {
-        if (!piece.placed) continue;
-        const x = piece.x * cs;
-        const y = piece.y * cs;
-        const w = piece.size * cs;
-        const h = piece.size * cs;
-        ctx.fillStyle = COLORS[(piece.size - 1) % COLORS.length];
-        ctx.fillRect(x, y, w, h);
-        // Thin border to visually separate tiles
-        ctx.save();
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = TILE_BORDER_COLOR;
-        ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
-        // Label with area (size^2)
-        const label = String(piece.size * piece.size);
-        drawCenteredLabel(ctx, label, x, y, w, h);
-        ctx.restore();
-      }
-      // Draw solver preview placements (semi-transparent overlay)
-      if (this.state.solverPreview && this.state.solverPreview.length) {
-        ctx.save();
-        for (const g of this.state.solverPreview) {
-          const x = g.x * cs;
-          const y = g.y * cs;
-          const w = g.size * cs;
-          const h = g.size * cs;
-          const base = COLORS[(g.size - 1) % COLORS.length];
-          ctx.fillStyle = hexToRgba(base, 0.35);
-          ctx.fillRect(x, y, w, h);
-          ctx.lineWidth = 1;
-          ctx.setLineDash([4, 3]);
-          ctx.strokeStyle = '#94a3b8';
-          ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
-      }
-        ctx.restore();
-      }
-      if (this.state.preview) {
-        const pr = this.state.preview;
-        ctx.fillStyle = pr.valid ? 'rgba(34,197,94,.5)' : 'rgba(239,68,68,.5)';
-        ctx.fillRect(pr.x * cs, pr.y * cs, pr.piece.size * cs, pr.piece.size * cs);
-      }
+
+      // Layers
+      drawGrid(ctx, BOARD_SIZE, cs, sizePx);
+      drawPlacedTiles(ctx, this.state, cs);
+      drawSolverPreview(ctx, this.state, cs);
+      drawPlacementPreview(ctx, this.state.preview, cs);
+
       this.needsDraw = false;
     }
+  }
+
+  // ---- Render helpers (kept in this file for single-file build) ----
+  function drawGrid(ctx, boardSize, cs, sizePx) {
+    ctx.save();
+    ctx.strokeStyle = GRID_COLOR;
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= boardSize; i++) {
+      const p = i * cs;
+      ctx.beginPath();
+      ctx.moveTo(p, 0);
+      ctx.lineTo(p, sizePx);
+      ctx.moveTo(0, p);
+      ctx.lineTo(sizePx, p);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawPlacedTiles(ctx, state, cs) {
+    for (const piece of state.inventory) {
+      if (!piece.placed) continue;
+      const x = piece.x * cs;
+      const y = piece.y * cs;
+      const w = piece.size * cs;
+      const h = piece.size * cs;
+      ctx.fillStyle = COLORS[(piece.size - 1) % COLORS.length];
+      ctx.fillRect(x, y, w, h);
+      ctx.save();
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = TILE_BORDER_COLOR;
+      ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+      const label = String(piece.size * piece.size);
+      drawCenteredLabel(ctx, label, x, y, w, h);
+      ctx.restore();
+    }
+  }
+
+  function drawSolverPreview(ctx, state, cs) {
+    if (!state.solverPreview || !state.solverPreview.length) return;
+    ctx.save();
+    for (const g of state.solverPreview) {
+      const x = g.x * cs;
+      const y = g.y * cs;
+      const w = g.size * cs;
+      const h = g.size * cs;
+      const base = COLORS[(g.size - 1) % COLORS.length];
+      ctx.fillStyle = hexToRgba(base, 0.35);
+      ctx.fillRect(x, y, w, h);
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 3]);
+      ctx.strokeStyle = '#94a3b8';
+      ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+    }
+    ctx.restore();
+  }
+
+  function drawPlacementPreview(ctx, preview, cs) {
+    if (!preview) return;
+    ctx.save();
+    ctx.fillStyle = preview.valid ? 'rgba(34,197,94,.5)' : 'rgba(239,68,68,.5)';
+    ctx.fillRect(preview.x * cs, preview.y * cs, preview.piece.size * cs, preview.piece.size * cs);
+    ctx.restore();
   }
 
   function hexToRgba(hex, alpha) {
