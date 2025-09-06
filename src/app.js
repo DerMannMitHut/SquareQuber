@@ -366,8 +366,7 @@ function init() {
   const renderer = new Renderer(canvas, state);
 
   function updateStatus(overlap) {
-    statusEl.textContent =
-      `Gefüllte Zellen: ${state.board.filled}/1296 • Überlappung: ${overlap ? 'Ja' : 'Nein'}`;
+    statusEl.textContent = `Filled cells: ${state.board.filled}/1296 • Overlap: ${overlap ? 'Yes' : 'No'}`;
     progressEl.textContent = `${state.board.filled}/1296`;
   }
 
@@ -427,17 +426,18 @@ function init() {
       return;
     }
     state.solving = true;
-    solveBtn.textContent = 'Abbrechen';
+    solveBtn.textContent = 'Cancel';
     const out = await solveRemainingAsync(state, (stats, preview) => {
       state.solverPreview = preview;
-      statusEl.textContent = `Auto‑Füllen: Knoten ${stats.nodes} • Tiefe ${stats.depth} • Platz. ${preview.length}`;
+      const nodes = Number(stats.nodes).toLocaleString('en-US');
+      statusEl.textContent = `Auto-Fill: Nodes ${nodes} • Depth ${stats.depth} • Placed ${preview.length}`;
       renderer.requestDraw();
     });
     state.solving = false;
     state.solverPreview = null;
-    solveBtn.textContent = 'Auto‑Füllen';
+    solveBtn.textContent = 'Auto-Fill';
     if (!out.ok) {
-      statusEl.textContent = out.reason === 'cancel' ? 'Auto‑Füllen abgebrochen.' : 'Keine Lösung gefunden.';
+      statusEl.textContent = out.reason === 'cancel' ? 'Auto-Fill cancelled.' : 'No solution found.';
     } else {
       renderInventory();
       renderer.requestDraw();

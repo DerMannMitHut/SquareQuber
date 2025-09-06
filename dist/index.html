@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -11,10 +11,10 @@
     <header class="app-header">
       <h1>SquareQuber</h1>
       <div class="toolbar">
-        <button id="newBtn">Neu</button>
-        <button id="undoBtn">Rückgängig</button>
-        <button id="gridBtn">Raster</button>
-        <button id="solveBtn">Auto‑Füllen</button>
+        <button id="newBtn">New</button>
+        <button id="undoBtn">Undo</button>
+        <button id="gridBtn">Grid</button>
+        <button id="solveBtn">Auto-Fill</button>
         <label>Zoom
           <input id="zoom" type="range" min="0.5" max="2" step="0.1" value="1" />
         </label>
@@ -25,7 +25,7 @@
       <canvas id="board" width="720" height="720"></canvas>
       <div id="inventory"></div>
     </main>
-    <footer id="status">Gefüllte Zellen: 0/1296 • Überlappung: Nein</footer>
+    <footer id="status">Filled cells: 0/1296 • Overlap: No</footer>
     <script type="module">// Application bootstrap
 function init() {
   const BOARD_SIZE = 36;
@@ -394,8 +394,7 @@ function init() {
   const renderer = new Renderer(canvas, state);
 
   function updateStatus(overlap) {
-    statusEl.textContent =
-      `Gefüllte Zellen: ${state.board.filled}/1296 • Überlappung: ${overlap ? 'Ja' : 'Nein'}`;
+    statusEl.textContent = `Filled cells: ${state.board.filled}/1296 • Overlap: ${overlap ? 'Yes' : 'No'}`;
     progressEl.textContent = `${state.board.filled}/1296`;
   }
 
@@ -455,17 +454,18 @@ function init() {
       return;
     }
     state.solving = true;
-    solveBtn.textContent = 'Abbrechen';
+    solveBtn.textContent = 'Cancel';
     const out = await solveRemainingAsync(state, (stats, preview) => {
       state.solverPreview = preview;
-      statusEl.textContent = `Auto‑Füllen: Knoten ${stats.nodes} • Tiefe ${stats.depth} • Platz. ${preview.length}`;
+      const nodes = Number(stats.nodes).toLocaleString('en-US');
+      statusEl.textContent = `Auto-Fill: Nodes ${nodes} • Depth ${stats.depth} • Placed ${preview.length}`;
       renderer.requestDraw();
     });
     state.solving = false;
     state.solverPreview = null;
-    solveBtn.textContent = 'Auto‑Füllen';
+    solveBtn.textContent = 'Auto-Fill';
     if (!out.ok) {
-      statusEl.textContent = out.reason === 'cancel' ? 'Auto‑Füllen abgebrochen.' : 'Keine Lösung gefunden.';
+      statusEl.textContent = out.reason === 'cancel' ? 'Auto-Fill cancelled.' : 'No solution found.';
     } else {
       renderInventory();
       renderer.requestDraw();

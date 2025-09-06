@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -11,10 +11,10 @@
     <header class="app-header">
       <h1>SquareQuber</h1>
       <div class="toolbar">
-        <button id="newBtn">Neu</button>
-        <button id="undoBtn">Rückgängig</button>
-        <button id="gridBtn">Raster</button>
-        <button id="solveBtn">Auto‑Füllen</button>
+        <button id="newBtn">New</button>
+        <button id="undoBtn">Undo</button>
+        <button id="gridBtn">Grid</button>
+        <button id="solveBtn">Auto-Fill</button>
         <label>Zoom
           <input id="zoom" type="range" min="0.5" max="2" step="0.1" value="1" />
         </label>
@@ -25,7 +25,7 @@
       <canvas id="board" width="720" height="720"></canvas>
       <div id="inventory"></div>
     </main>
-    <footer id="status">Gefüllte Zellen: 0/1296 • Überlappung: Nein</footer>
+    <footer id="status">Filled cells: 0/1296 • Overlap: No</footer>
     <script type="module" src="./app.js"></script>
   </body>
 </html>
