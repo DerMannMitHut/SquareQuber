@@ -576,7 +576,11 @@ function solveRemaining(state) {
   const available = new Map();
   for (let s = 1; s <= 8; s++) available.set(s, []);
   for (const p of state.inventory) if (!p.placed) available.get(p.size).push(p);
-  const sizesDesc = [...available.keys()].sort((a, b) => b - a);
+  // Build a randomized order of sizes that have available pieces
+  const sizesOrder = [...available.keys()].filter((s) => (available.get(s) || []).length > 0);
+  shuffleInPlace(sizesOrder);
+  // Randomize the order of pieces within each size pool
+  for (const s of sizesOrder) shuffleInPlace(available.get(s));
 
   const placements = []; // {pieceId, x, y, size}
 
@@ -608,7 +612,7 @@ function solveRemaining(state) {
     const spot = findNextEmpty();
     if (!spot) return true; // solved
     const { x, y } = spot;
-    for (const s of sizesDesc) {
+    for (const s of sizesOrder) {
       const pool = available.get(s);
       if (!pool || pool.length === 0) continue;
       if (!canPlaceAt(x, y, s)) continue;
@@ -659,7 +663,11 @@ async function solveRemainingAsync(state, onTick) {
   const available = new Map();
   for (let s = 1; s <= 8; s++) available.set(s, []);
   for (const p of state.inventory) if (!p.placed) available.get(p.size).push(p);
-  const sizesDesc = [...available.keys()].sort((a, b) => b - a);
+  // Build a randomized order of sizes that have available pieces
+  const sizesOrder = [...available.keys()].filter((s) => (available.get(s) || []).length > 0);
+  shuffleInPlace(sizesOrder);
+  // Randomize the order of pieces within each size pool
+  for (const s of sizesOrder) shuffleInPlace(available.get(s));
 
   const placements = []; // {pieceId,x,y,size}
   const stats = { nodes: 0, depth: 0 };
@@ -685,7 +693,7 @@ async function solveRemainingAsync(state, onTick) {
     if (!spot) return true;
     const { x, y } = spot;
     stats.depth = Math.max(stats.depth, depth);
-    for (const s of sizesDesc) {
+    for (const s of sizesOrder) {
       const pool = available.get(s);
       if (!pool || pool.length === 0) continue;
       if (!canPlaceAt(x, y, s)) continue;
@@ -726,6 +734,14 @@ async function solveRemainingAsync(state, onTick) {
 }
 
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+
+function shuffleInPlace(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
 
 // Place the next available piece of given size at the first non-overlapping board position
 function autoPlaceFirstFit(state, size) {
