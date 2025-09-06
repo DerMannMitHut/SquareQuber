@@ -26,10 +26,11 @@ body {
 
 .app-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 1rem;
   padding: 1rem;
   border-bottom: 1px solid #1f2937;
+  flex-wrap: wrap;
 }
 
 h1 .version {
@@ -47,6 +48,7 @@ h1 .version {
 .solve-status {
   margin-top: 0.25rem;
   color: var(--muted);
+  flex-basis: 100%;
 }
 
 main.main {
