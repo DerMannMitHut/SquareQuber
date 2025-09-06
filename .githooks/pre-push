@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Pre-push hook: require SemVer version bump in package.json versus remote tip.
+
+is_semver() {
+  [[ "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+([\-+][0-9A-Za-z\.-]+)?$ ]]
+}
+
+ver_cmp() { # returns 0 if $1 > $2 (ignores pre-release), else 1
+  IFS=. read -r a b c <<<"${1%%[-+]*}"
+  IFS=. read -r x y z <<<"${2%%[-+]*}"
+  a=${a:-0}; b=${b:-0}; c=${c:-0}; x=${x:-0}; y=${y:-0}; z=${z:-0}
+  if (( a > x )); then return 0; fi
+  if (( a < x )); then return 1; fi
+  if (( b > y )); then return 0; fi
+  if (( b < y )); then return 1; fi
+  if (( c > z )); then return 0; fi
+  return 1
+}
+
+pkg_ver_head=$(node -e "console.log(require('./package.json').version||'')" 2>/dev/null || true)
+if ! is_semver "$pkg_ver_head"; then
+  echo "pre-push: package.json version is missing or not SemVer: '$pkg_ver_head'" >&2
+  exit 1
+fi
+
+# Read refs from stdin (local_ref local_sha remote_ref remote_sha)
+remote_sha=""
+while read -r _local_ref _local_sha _remote_ref _remote_sha; do
+  remote_sha="$_remote_sha"
+done
+
+if [[ -z "${remote_sha}" ]]; then
+  # Fallback to upstream
+  if git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
+    base_ref="@{u}"
+  else
+    base_ref=""
+  fi
+else
+  if [[ "${remote_sha}" == "0000000000000000000000000000000000000000" ]]; then
+    base_ref="" # new branch/tag push
+  else
+    base_ref="${remote_sha}"
+  fi
+fi
+
+if [[ -z "$base_ref" ]]; then
+  # First push: just require a valid version
+  exit 0
+fi
+
+# Extract version from remote tip's package.json
+pkg_ver_remote=$(git show "${base_ref}:package.json" 2>/dev/null | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{try{console.log(JSON.parse(d).version||'')}catch{console.log('')}})" || true)
+
+if ! is_semver "$pkg_ver_remote"; then
+  # If remote lacks version, allow push
+  exit 0
+fi
+
+if [[ "$pkg_ver_head" == "$pkg_ver_remote" ]]; then
+  echo "pre-push: version not bumped (still ${pkg_ver_head}). Bump package.json version before pushing." >&2
+  exit 1
+fi
+
+if ! ver_cmp "$pkg_ver_head" "$pkg_ver_remote"; then
+  echo "pre-push: version (${pkg_ver_head}) must be greater than remote (${pkg_ver_remote}) per SemVer." >&2
+  exit 1
+fi
+
+exit 0
+

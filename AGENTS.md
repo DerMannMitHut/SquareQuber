@@ -48,6 +48,7 @@ Note: If wrappers don’t exist yet, add thin scripts that call your toolchain (
   - MINOR: backwards-compatible features, UI additions, solver improvements.
   - MAJOR: breaking changes (API, file format, behavior that invalidates prior usage).
 - Process:
-  1) Update `package.json` version.
-  2) Run `npm run build` and verify `dist/SquareQuber.html` shows the new version.
-  3) Commit with `chore(release): vX.Y.Z` and push.
+  1) Bump version: run `scripts/bump <patch|minor|major|X.Y.Z>`.
+  2) Build and verify: `npm run build` (check version in `dist/SquareQuber.html`).
+  3) Push changes. A pre-push hook enforces that the version increased vs. the remote.
+     - Hooks path is set to `.githooks` by repo config; if needed, run `git config core.hooksPath .githooks`.
