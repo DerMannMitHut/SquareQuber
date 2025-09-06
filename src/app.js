@@ -153,8 +153,18 @@ function init() {
       }
       for (const piece of this.state.inventory) {
         if (!piece.placed) continue;
+        const x = piece.x * cs;
+        const y = piece.y * cs;
+        const w = piece.size * cs;
+        const h = piece.size * cs;
         ctx.fillStyle = COLORS[(piece.size - 1) % COLORS.length];
-        ctx.fillRect(piece.x * cs, piece.y * cs, piece.size * cs, piece.size * cs);
+        ctx.fillRect(x, y, w, h);
+        // Thin border to visually separate tiles
+        ctx.save();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = '#0b1220';
+        ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+        ctx.restore();
       }
       if (this.state.preview) {
         const pr = this.state.preview;
