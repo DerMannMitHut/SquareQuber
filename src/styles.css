@@ -22,6 +22,9 @@ body {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .app-header {
@@ -123,4 +126,10 @@ body.solving #inventory {
   }
   .piece-thumb { padding: 0.25rem 0; }
   button { padding: 0.6rem 0.9rem; }
+}
+.app-header, .solve-status, main, #board, #inventory {
+  user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  -webkit-touch-callout: none;
 }

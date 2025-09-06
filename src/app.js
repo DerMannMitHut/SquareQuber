@@ -303,6 +303,7 @@ function init() {
       this.origX = piece.x;
       this.origY = piece.y;
       this.wasPlaced = piece.placed;
+      document.body.classList.add('dragging');
       if (piece.placed) this.state.board.remove(piece);
       piece.placed = false;
       this.offsetX = px;
@@ -420,6 +421,7 @@ function init() {
     }
     onUp(_e, move, up) {
       if (!this.active) return;
+      document.body.classList.remove('dragging');
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
       window.removeEventListener('pointercancel', up);
