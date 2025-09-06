@@ -433,11 +433,11 @@ function init() {
       span.textContent = `x${remain}`;
       div.appendChild(span);
       if (remain > 0) {
-        // Click/tap to auto-place at first available non-overlapping position
+        // Click/tap to auto-place at a random non-overlapping position
         div.addEventListener('click', (e) => {
           e.preventDefault();
           if (state.solving) return; // block during auto-fill
-          autoPlaceFirstFit(state, size);
+          autoPlaceRandomFit(state, size);
           renderInventory();
           renderer.requestDraw();
           updateStatus(false);
@@ -756,6 +756,40 @@ function autoPlaceFirstFit(state, size) {
     }
   }
   return false;
+}
+
+// Random-fit variant: try all valid positions in random order (or up to a cap)
+function autoPlaceRandomFit(state, size) {
+  const piece = state.inventory.find((p) => p.size === size && !p.placed);
+  if (!piece) return false;
+  const board = state.board;
+  const positions = [];
+  for (let y = 0; y <= board.size - size; y++) {
+    for (let x = 0; x <= board.size - size; x++) {
+      if (canPlace(board, piece, x, y)) positions.push({ x, y });
+    }
+  }
+  if (positions.length === 0) return false;
+  // Shuffle positions
+  for (let i = positions.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [positions[i], positions[j]] = [positions[j], positions[i]];
+  }
+  const pick = positions[0];
+  piece.x = pick.x;
+  piece.y = pick.y;
+  piece.placed = true;
+  board.place(piece, pick.x, pick.y);
+  state.pushStep({
+    pieceId: piece.id,
+    fromX: 0,
+    fromY: 0,
+    fromPlaced: false,
+    toX: pick.x,
+    toY: pick.y,
+    toPlaced: true,
+  });
+  return true;
 }
 </script>
   </body>
