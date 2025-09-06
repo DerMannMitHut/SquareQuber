@@ -96,12 +96,19 @@ function init() {
     undoStep() {
       const step = this.undo.pop();
       if (!step) return;
-      const p = this.inventory.find((x) => x.id === step.pieceId);
-      if (step.toPlaced) this.board.remove(p);
-      p.x = step.fromX;
-      p.y = step.fromY;
-      p.placed = step.fromPlaced;
-      if (step.fromPlaced) this.board.place(p, p.x, p.y);
+      const applySingle = (s) => {
+        const p = this.inventory.find((x) => x.id === s.pieceId);
+        if (s.toPlaced) this.board.remove(p);
+        p.x = s.fromX;
+        p.y = s.fromY;
+        p.placed = s.fromPlaced;
+        if (s.fromPlaced) this.board.place(p, p.x, p.y);
+      };
+      if (step.batch && Array.isArray(step.steps)) {
+        for (let i = step.steps.length - 1; i >= 0; i--) applySingle(step.steps[i]);
+      } else {
+        applySingle(step);
+      }
       this.redo.push(step);
     }
   }
@@ -322,6 +329,7 @@ function init() {
   const newBtn = document.getElementById('newBtn');
   const undoBtn = document.getElementById('undoBtn');
   const gridBtn = document.getElementById('gridBtn');
+  const solveBtn = document.getElementById('solveBtn');
   const zoomInput = document.getElementById('zoom');
 
   const state = new GameState();
@@ -383,6 +391,17 @@ function init() {
     renderer.requestDraw();
   });
 
+  solveBtn.addEventListener('click', () => {
+    const result = solveRemaining(state);
+    if (!result.ok) {
+      statusEl.textContent = 'Keine Lösung ab aktueller Belegung gefunden.';
+    } else {
+      renderInventory();
+      renderer.requestDraw();
+      updateStatus(false);
+    }
+  });
+
   zoomInput.addEventListener('input', (e) => {
     const z = parseFloat(e.target.value);
     renderer.setScale(z);
@@ -395,3 +414,88 @@ function init() {
 
 // Auto-start when included as a module or plain script at the end of body
 init();
+
+// -------------------- Solver --------------------
+function solveRemaining(state) {
+  const size = state.board.size;
+  // Clone board cells
+  const cells = state.board.cells.map((row) => row.slice());
+  // Collect available pieces by size (descending)
+  const available = new Map();
+  for (let s = 1; s <= 8; s++) available.set(s, []);
+  for (const p of state.inventory) if (!p.placed) available.get(p.size).push(p);
+  const sizesDesc = [...available.keys()].sort((a, b) => b - a);
+
+  const placements = []; // {pieceId, x, y, size}
+
+  function findNextEmpty() {
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        if (cells[y][x] === 0) return { x, y };
+      }
+    }
+    return null;
+  }
+  function canPlaceAt(x, y, s) {
+    if (x + s > size || y + s > size) return false;
+    for (let j = 0; j < s; j++) {
+      for (let i = 0; i < s; i++) {
+        if (cells[y + j][x + i] !== 0) return false;
+      }
+    }
+    return true;
+  }
+  function doPlace(x, y, s, id) {
+    for (let j = 0; j < s; j++) for (let i = 0; i < s; i++) cells[y + j][x + i] = id;
+  }
+  function unPlace(x, y, s) {
+    for (let j = 0; j < s; j++) for (let i = 0; i < s; i++) cells[y + j][x + i] = 0;
+  }
+
+  function backtrack() {
+    const spot = findNextEmpty();
+    if (!spot) return true; // solved
+    const { x, y } = spot;
+    for (const s of sizesDesc) {
+      const pool = available.get(s);
+      if (!pool || pool.length === 0) continue;
+      if (!canPlaceAt(x, y, s)) continue;
+      // choose a piece of this size
+      const piece = pool.pop();
+      doPlace(x, y, s, piece.id);
+      placements.push({ pieceId: piece.id, x, y, size: s });
+      if (backtrack()) return true;
+      // backtrack
+      placements.pop();
+      unPlace(x, y, s);
+      pool.push(piece);
+    }
+    return false;
+  }
+
+  const solved = backtrack();
+  if (!solved) return { ok: false };
+
+  // Apply placements as a single batch undo step
+  const steps = [];
+  for (const pl of placements) {
+    const piece = state.inventory.find((p) => p.id === pl.pieceId);
+    // Skip if somehow already placed (should not happen)
+    if (piece.placed) continue;
+    piece.x = pl.x;
+    piece.y = pl.y;
+    piece.placed = true;
+    state.board.place(piece, pl.x, pl.y);
+    steps.push({
+      pieceId: piece.id,
+      fromX: 0,
+      fromY: 0,
+      fromPlaced: false,
+      toX: pl.x,
+      toY: pl.y,
+      toPlaced: true,
+    });
+  }
+  if (steps.length) state.pushStep({ batch: true, steps });
+  return { ok: true, count: steps.length };
+}
