@@ -429,16 +429,7 @@ function init() {
       span.textContent = `x${remain}`;
       div.appendChild(span);
       if (remain > 0) {
-        // Click/tap to auto-place at a random non-overlapping position
-        div.addEventListener('click', (e) => {
-          e.preventDefault();
-          if (state.solving) return; // block during auto-fill
-          autoPlaceRandomFit(state, size);
-          renderInventory();
-          renderer.requestDraw();
-          updateStatus(false);
-        });
-        // Drag with move threshold to avoid accidental drags on tap
+        // Unified tap-or-drag handler: start drag after threshold; otherwise treat as tap to auto-place
         div.addEventListener('pointerdown', (e) => {
           if (state.solving) return; // block during auto-fill
           const startX = e.clientX;
@@ -457,8 +448,14 @@ function init() {
             window.removeEventListener('pointermove', move);
             window.removeEventListener('pointerup', up);
             window.removeEventListener('pointercancel', up);
+            if (!started && !state.solving) {
+              autoPlaceRandomFit(state, size);
+              renderInventory();
+              renderer.requestDraw();
+              updateStatus(false);
+            }
           };
-          window.addEventListener('pointermove', move);
+          window.addEventListener('pointermove', move, { passive: true });
           window.addEventListener('pointerup', up);
           window.addEventListener('pointercancel', up);
         });
