@@ -66,6 +66,12 @@ main.main {
   background: #1e293b;
   /* Allow native page panning on touch; drag uses long-press */
   touch-action: pan-x pan-y;
+  overscroll-behavior: contain;
+}
+
+/* While dragging a piece, disable touch panning on the board to avoid page scroll */
+body.dragging #board {
+  touch-action: none;
 }
 
 #inventory {

@@ -377,6 +377,7 @@ function init() {
     }
     onMove(e) {
       if (!this.active) return;
+      if (e.pointerType === 'touch' && e.cancelable) e.preventDefault();
       const cs = this.renderer.cellSize;
       const { cx, cy } = toCanvasCoords(this.canvas, e);
       const px = cx - this.offsetX;
@@ -391,6 +392,7 @@ function init() {
     onUp(_e, move, up) {
       if (!this.active) return;
       document.body.classList.remove('dragging');
+      try { this.canvas.releasePointerCapture && this.canvas.releasePointerCapture(_e.pointerId); } catch {}
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
       window.removeEventListener('pointercancel', up);
