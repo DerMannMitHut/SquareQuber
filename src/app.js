@@ -290,6 +290,7 @@ function init() {
       this.origY = 0;
       this.wasPlaced = false;
       canvas.addEventListener('pointerdown', (e) => this.onCanvasDown(e));
+      canvas.addEventListener('pointermove', (e) => this.onCanvasPointerMove(e));
       // Right-click to put a tile back into inventory
       canvas.addEventListener('contextmenu', (e) => this.onContextMenu(e));
       // Some browsers fire auxclick/pointerdown with button===2 instead of contextmenu
