@@ -49,6 +49,9 @@ Note: If wrappers don’t exist yet, add thin scripts that call your toolchain (
   - MAJOR: breaking changes (API, file format, behavior that invalidates prior usage).
 - Process:
   1) Bump version: run `scripts/bump <patch|minor|major|X.Y.Z>`.
-  2) Build and verify: `npm run build` (check version in `dist/SquareQuber.html`).
+  2) Build and verify: `npm run build`.
+     - Outputs: `dist/SquareQuber.html` and copies to `docs/index.html` for GitHub Pages.
   3) Push changes. A pre-push hook enforces that the version increased vs. the remote.
+  4) Enable GitHub Pages: Settings → Pages → Source: Deploy from a branch → `main` / `/docs`.
+     Your app will be available at `https://<user>.github.io/<repo>/` (e.g., `https://DerMannMitHut.github.io/SquareQuber/`).
      - Hooks path is set to `.githooks` by repo config; if needed, run `git config core.hooksPath .githooks`.

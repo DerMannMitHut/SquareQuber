@@ -443,7 +443,7 @@ function init() {
         // Also bind on the thumbnail canvas for safety on some browsers
         thumb.addEventListener('click', onAutoPlaceClick);
 
-        // Unified tap-or-drag handler: start drag after threshold; otherwise treat as tap to auto-place
+        // Unified tap-or-drag handler: start drag after threshold; delegated click handles tap
         div.addEventListener('pointerdown', (e) => {
           if (state.solving) return; // block during auto-fill
           const startX = e.clientX;
@@ -454,6 +454,7 @@ function init() {
             const dy = ev.clientY - startY;
             if (!started && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
               started = true;
+              inventoryDragActive = true;
               const piece = state.inventory.find((p) => p.size === size && !p.placed);
               if (piece) drag.startFromInventory(piece, ev);
             }
@@ -462,12 +463,7 @@ function init() {
             window.removeEventListener('pointermove', move);
             window.removeEventListener('pointerup', up);
             window.removeEventListener('pointercancel', up);
-            if (!started && !state.solving) {
-              autoPlaceRandomFit(state, size);
-              renderInventory();
-              renderer.requestDraw();
-              updateStatus(false);
-            }
+            setTimeout(() => { inventoryDragActive = false; }, 0);
           };
           window.addEventListener('pointermove', move, { passive: true });
           window.addEventListener('pointerup', up);
@@ -479,6 +475,21 @@ function init() {
   }
 
   const drag = new DragController(canvas, state, renderer, updateStatus, renderInventory);
+  let inventoryDragActive = false;
+
+  // Delegate click on inventory for reliable tap-to-place across browsers
+  invEl.addEventListener('click', (e) => {
+    const el = e.target.closest('.piece-thumb');
+    if (!el) return;
+    if (state.solving || inventoryDragActive) return;
+    const size = parseInt(el.dataset.size || '0', 10);
+    if (!size) return;
+    e.preventDefault();
+    autoPlaceRandomFit(state, size);
+    renderInventory();
+    renderer.requestDraw();
+    updateStatus(false);
+  });
 
   newBtn.addEventListener('click', () => {
     state.reset();

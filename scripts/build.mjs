@@ -168,6 +168,15 @@ async function build() {
   const out = path.join(distDir, 'SquareQuber.html');
   await writeFile(out, inlined, 'utf8');
   console.log(`Built: ${path.relative(projectRoot, out)}`);
+
+  // Also write to docs/ for GitHub Pages hosting
+  const docsDir = path.join(projectRoot, 'docs');
+  await mkdir(docsDir, { recursive: true });
+  const docsIndex = path.join(docsDir, 'index.html');
+  const docsNamed = path.join(docsDir, 'SquareQuber.html');
+  await writeFile(docsIndex, inlined, 'utf8');
+  await writeFile(docsNamed, inlined, 'utf8');
+  console.log(`Docs updated: ${path.relative(projectRoot, docsIndex)} and ${path.relative(projectRoot, docsNamed)}`);
 }
 
 build().catch((err) => {
