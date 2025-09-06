@@ -148,7 +148,7 @@ async function build() {
   const inlined = await inlineHTML(html, path.dirname(htmlEntry));
   validateNoExternals(inlined);
   await mkdir(distDir, { recursive: true });
-  const out = path.join(distDir, 'index.html');
+  const out = path.join(distDir, 'SquareQuber.html');
   await writeFile(out, inlined, 'utf8');
   console.log(`Built: ${path.relative(projectRoot, out)}`);
 }

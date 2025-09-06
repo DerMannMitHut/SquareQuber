@@ -4,8 +4,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 TARGET=""
-if [[ -f "$ROOT/dist/index.html" ]]; then
-  TARGET="$ROOT/dist/index.html"
+if [[ -f "$ROOT/dist/SquareQuber.html" ]]; then
+  TARGET="$ROOT/dist/SquareQuber.html"
 elif [[ -f "$ROOT/src/index.html" ]]; then
   TARGET="$ROOT/src/index.html"
 else
@@ -21,4 +21,3 @@ elif command -v xdg-open >/dev/null 2>&1; then
 else
   echo "Please open this file in your browser: $TARGET"
 fi
-
