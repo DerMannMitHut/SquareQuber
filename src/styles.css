@@ -49,6 +49,8 @@ h1 .version {
   margin-top: 0.25rem;
   color: var(--muted);
   flex-basis: 100%;
+  min-height: 1.25rem; /* reserve space even when empty */
+  line-height: 1.25rem;
 }
 
 main.main {
