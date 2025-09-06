@@ -88,6 +88,13 @@ footer#status {
   color: var(--muted);
 }
 
+/* Block interactions with tiles during auto-fill */
+body.solving #board,
+body.solving #inventory {
+  pointer-events: none;
+  opacity: 0.9;
+}
+
 /* Mobile portrait layout */
 @media (orientation: portrait) {
   .toolbar { flex-wrap: wrap; }

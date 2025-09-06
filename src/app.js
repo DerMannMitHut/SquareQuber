@@ -245,6 +245,7 @@ function init() {
       window.addEventListener('pointercancel', up);
     }
     onCanvasDown(e) {
+      if (this.state.solving) return; // block interactions during auto-fill
       e.preventDefault();
       const rect = this.canvas.getBoundingClientRect();
       const cs = this.renderer.cellSize;
@@ -263,6 +264,7 @@ function init() {
       this.start(piece, px, py);
     }
     onContextMenu(e) {
+      if (this.state.solving) return; // block interactions during auto-fill
       e.preventDefault();
       const rect = this.canvas.getBoundingClientRect();
       const cs = this.renderer.cellSize;
@@ -289,6 +291,7 @@ function init() {
       this.renderer.requestDraw();
     }
     startFromInventory(piece, e) {
+      if (this.state.solving) return; // block interactions during auto-fill
       const cs = this.renderer.cellSize;
       const px = (piece.size * cs) / 2;
       const py = (piece.size * cs) / 2;
@@ -400,6 +403,7 @@ function init() {
         // Click/tap to auto-place at first available non-overlapping position
         div.addEventListener('click', (e) => {
           e.preventDefault();
+          if (state.solving) return; // block during auto-fill
           autoPlaceFirstFit(state, size);
           renderInventory();
           renderer.requestDraw();
@@ -407,6 +411,7 @@ function init() {
         });
         // Drag with move threshold to avoid accidental drags on tap
         div.addEventListener('pointerdown', (e) => {
+          if (state.solving) return; // block during auto-fill
           const startX = e.clientX;
           const startY = e.clientY;
           let started = false;
@@ -460,6 +465,7 @@ function init() {
       return;
     }
     state.solving = true;
+    document.body.classList.add('solving');
     solveBtn.textContent = 'Cancel';
     const out = await solveRemainingAsync(state, (stats, preview) => {
       state.solverPreview = preview;
@@ -469,6 +475,7 @@ function init() {
     });
     state.solving = false;
     state.solverPreview = null;
+    document.body.classList.remove('solving');
     solveBtn.textContent = 'Auto-Fill';
     if (!out.ok) {
       statusEl.textContent = out.reason === 'cancel' ? 'Auto-Fill cancelled.' : 'No solution found.';
