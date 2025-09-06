@@ -3,6 +3,7 @@
   "version": "1.0.11",
   "private": true,
   "type": "module",
+  "license": "Unlicense",
   "scripts": {
     "dev": "scripts/dev",
     "build": "scripts/build"
