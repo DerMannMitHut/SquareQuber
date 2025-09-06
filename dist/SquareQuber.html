@@ -203,6 +203,9 @@ function init() {
         ctx.lineWidth = 1;
         ctx.strokeStyle = '#0b1220';
         ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+        // Label with area (size^2)
+        const label = String(piece.size * piece.size);
+        drawCenteredLabel(ctx, label, x, y, w, h);
         ctx.restore();
       }
       // Draw solver preview placements (semi-transparent overlay)
@@ -239,6 +242,23 @@ function init() {
     const g = (bigint >> 8) & 255;
     const b = bigint & 255;
     return `rgba(${r},${g},${b},${alpha})`;
+  }
+
+  function drawCenteredLabel(ctx, text, x, y, w, h) {
+    const size = Math.max(10, Math.min(w, h) * 0.45);
+    ctx.save();
+    ctx.font = `${size}px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const cx = x + w / 2;
+    const cy = y + h / 2;
+    // Outline for contrast
+    ctx.lineWidth = Math.max(1, Math.floor(size / 10));
+    ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+    ctx.strokeText(text, cx, cy);
+    ctx.fillStyle = '#e5e7eb';
+    ctx.fillText(text, cx, cy);
+    ctx.restore();
   }
 
   class DragController {
@@ -428,6 +448,11 @@ function init() {
       const ictx = thumb.getContext('2d');
       ictx.fillStyle = COLORS[(size - 1) % COLORS.length];
       ictx.fillRect(0, 0, size * t, size * t);
+      // Label with area (size^2)
+      const w = size * t;
+      const h = size * t;
+      const label = String(size * size);
+      drawCenteredLabel(ictx, label, 0, 0, w, h);
       div.appendChild(thumb);
       const span = document.createElement('span');
       span.textContent = `x${remain}`;
