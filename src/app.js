@@ -450,6 +450,20 @@ function init() {
     renderer.setScale(z);
   });
 
+  // Auto scale for portrait to fit width
+  function autoScalePortrait() {
+    const portrait = window.matchMedia('(orientation: portrait)').matches || window.innerHeight > window.innerWidth;
+    if (!portrait) return;
+    const padding = 16; // approximate horizontal padding
+    const target = Math.max(240, window.innerWidth - padding * 2);
+    const scale = Math.max(0.4, Math.min(2, target / canvas.width));
+    renderer.setScale(scale);
+    zoomInput.value = String(scale);
+  }
+  window.addEventListener('resize', autoScalePortrait, { passive: true });
+  window.addEventListener('orientationchange', autoScalePortrait);
+  autoScalePortrait();
+
   renderInventory();
   renderer.requestDraw();
   updateStatus(false);

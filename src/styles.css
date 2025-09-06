@@ -19,6 +19,9 @@ body {
   font: 14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu;
   color: var(--fg);
   background: var(--bg);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .app-header {
@@ -82,4 +85,22 @@ footer#status {
   padding: 0.5rem 1rem;
   border-top: 1px solid #1f2937;
   color: var(--muted);
+}
+
+/* Mobile portrait layout */
+@media (orientation: portrait) {
+  .toolbar { flex-wrap: wrap; }
+  main.main {
+    flex-direction: column;
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+  #inventory {
+    flex-direction: row;
+    flex-wrap: wrap;
+    max-width: none;
+    gap: 0.5rem;
+  }
+  .piece-thumb { padding: 0.25rem 0; }
+  button { padding: 0.6rem 0.9rem; }
 }
