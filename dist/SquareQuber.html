@@ -37,7 +37,8 @@ function init() {
   const THUMB_UNIT = 20; // px per size unit in inventory
   const ZOOM_MIN = 0.3;
   const ZOOM_MAX = 2;
-  const SOLVER_TICK_MS = 1000;
+  const SOLVER_TICK_MS = 500; // update roughly twice per second
+  const SOLVER_YIELD_NODES = 2000; // force a yield every N nodes regardless of time
 
   class Piece {
     constructor(id, size) {
@@ -657,10 +658,8 @@ async function solveRemainingAsync(state, onTick) {
   const available = new Map();
   for (let s = 1; s <= 8; s++) available.set(s, []);
   for (const p of state.inventory) if (!p.placed) available.get(p.size).push(p);
-  // Build a randomized order of sizes that have available pieces
-  const sizesOrder = [...available.keys()].filter((s) => (available.get(s) || []).length > 0);
-  shuffleInPlace(sizesOrder);
-  // Randomize the order of pieces within each size pool
+  // Use size-descending order for efficiency; randomize within pools per run
+  const sizesOrder = [...available.keys()].sort((a, b) => b - a);
   for (const s of sizesOrder) shuffleInPlace(available.get(s));
 
   const placements = []; // {pieceId,x,y,size}
@@ -700,7 +699,7 @@ async function solveRemainingAsync(state, onTick) {
       placements.push({ pieceId: piece.id, x, y, size: s });
       stats.nodes++;
       const now = Date.now();
-      if (now - lastTick >= SOLVER_TICK_MS) {
+      if (now - lastTick >= SOLVER_TICK_MS || (stats.nodes % SOLVER_YIELD_NODES === 0)) {
         lastTick = now;
         onTick?.(stats, placements.map((p) => ({ x: p.x, y: p.y, size: p.size })));
         await sleep(0);
