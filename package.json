@@ -1,0 +1,10 @@
+{
+  "name": "squarequber",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "scripts/dev",
+    "build": "scripts/build"
+  }
+}
+

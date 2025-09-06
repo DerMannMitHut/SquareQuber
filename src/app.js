@@ -1,4 +1,5 @@
-(() => {
+// Application bootstrap
+function init() {
   const BOARD_SIZE = 36;
   const COLORS = ['#f87171','#fbbf24','#34d399','#60a5fa','#c084fc','#f472b6','#a78bfa','#facc15'];
 
@@ -339,4 +340,7 @@
   renderInventory();
   renderer.requestDraw();
   updateStatus(false);
-})();
+}
+
+// Auto-start when included as a module or plain script at the end of body
+init();

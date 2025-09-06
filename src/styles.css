@@ -1,14 +1,85 @@
-:root{--bg:#0f172a;--fg:#e5e7eb;--accent:#38bdf8;--muted:#94a3b8}
-*{box-sizing:border-box}
-html,body{height:100%}
-body{margin:0;font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;color:var(--fg);background:var(--bg)}
-.app-header{display:flex;align-items:center;gap:1rem;padding:1rem;border-bottom:1px solid #1f2937}
-.toolbar{display:flex;align-items:center;gap:.5rem}
-main.main{display:flex;gap:1rem;padding:1rem}
-#board{background:#1e293b;touch-action:none}
-#inventory{display:flex;flex-direction:column;gap:.5rem;max-width:160px}
-.piece-thumb{display:flex;align-items:center;gap:.5rem;cursor:grab}
-.piece-thumb canvas{border:1px solid var(--muted);background:#1e293b}
-button{background:var(--accent);color:#002533;border:0;border-radius:.5rem;padding:.5rem .75rem;cursor:pointer}
-button:hover{filter:brightness(1.05)}
-footer#status{padding:.5rem 1rem;border-top:1px solid #1f2937;color:var(--muted)}
+:root {
+  --bg: #0f172a;
+  --fg: #e5e7eb;
+  --accent: #38bdf8;
+  --muted: #94a3b8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font: 14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu;
+  color: var(--fg);
+  background: var(--bg);
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-bottom: 1px solid #1f2937;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+main.main {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+#board {
+  background: #1e293b;
+  touch-action: none;
+}
+
+#inventory {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 160px;
+}
+
+.piece-thumb {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: grab;
+}
+
+.piece-thumb canvas {
+  border: 1px solid var(--muted);
+  background: #1e293b;
+}
+
+button {
+  background: var(--accent);
+  color: #002533;
+  border: 0;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+}
+
+button:hover {
+  filter: brightness(1.05);
+}
+
+footer#status {
+  padding: 0.5rem 1rem;
+  border-top: 1px solid #1f2937;
+  color: var(--muted);
+}

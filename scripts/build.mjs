@@ -37,6 +37,15 @@ async function toDataURL(filePath) {
   return `data:${mime};base64,${b64}`;
 }
 
+function minifyCSS(input) {
+  let css = input;
+  css = css.replace(/\/\*[\s\S]*?\*\//g, ''); // strip comments
+  css = css.replace(/\s+/g, ' '); // collapse whitespace
+  css = css.replace(/\s*([{}:;,>])\s+/g, '$1'); // trim around symbols
+  css = css.replace(/;}/g, '}'); // drop last semicolons
+  return css.trim();
+}
+
 async function inlineCSS(css, baseDir) {
   // Replace url(...) with inlined data URLs for local assets
   const urlRe = /url\(([^)]+)\)/g;
@@ -68,16 +77,25 @@ async function inlineHTML(html, baseDir) {
     const cssPath = path.resolve(baseDir, href);
     let css = await readFile(cssPath, 'utf8');
     css = await inlineCSS(css, path.dirname(cssPath));
+    css = minifyCSS(css);
     return `<style>${css}</style>`;
   });
 
-  // Inline <script src="..."></script>
-  html = await replaceAsync(html, /<script[^>]*src=["']([^"']+)["'][^>]*>\s*<\/script>/gi, async (_m, src) => {
-    if (isHttp(src) || isData(src)) throw new Error(`External script not allowed: ${src}`);
-    const jsPath = path.resolve(baseDir, src);
-    const js = await readFile(jsPath, 'utf8');
-    return `<script>${js}</script>`;
-  });
+  // Inline <script src="..."></script> while preserving other attributes (e.g., type="module").
+  html = await replaceAsync(
+    html,
+    /<script([^>]*)\ssrc=["']([^"']+)["']([^>]*)>\s*<\/script>/gi,
+    async (_m, pre, src, post) => {
+      if (isHttp(src) || isData(src)) throw new Error(`External script not allowed: ${src}`);
+      const jsPath = path.resolve(baseDir, src);
+      const js = await readFile(jsPath, 'utf8');
+      // Merge attributes and strip any src=...
+      let attrs = `${pre || ''} ${post || ''}`.trim();
+      attrs = attrs.replace(/\s*src=["'][^"']+["']/gi, '').replace(/\s{2,}/g, ' ').trim();
+      const attrStr = attrs ? ' ' + attrs : '';
+      return `<script${attrStr}>${js}</script>`;
+    }
+  );
 
   // Inline <img src="...">
   html = await replaceAsync(html, /<img([^>]*?)\s+src=["']([^"']+)["']([^>]*)>/gi, async (_m, pre, src, post) => {

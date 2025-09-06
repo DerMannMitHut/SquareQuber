@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+TARGET=""
+if [[ -f "$ROOT/dist/index.html" ]]; then
+  TARGET="$ROOT/dist/index.html"
+elif [[ -f "$ROOT/src/index.html" ]]; then
+  TARGET="$ROOT/src/index.html"
+else
+  echo "No index.html found in dist/ or src/." >&2
+  exit 1
+fi
+
+echo "Opening $TARGET"
+if command -v open >/dev/null 2>&1; then
+  open "$TARGET"
+elif command -v xdg-open >/dev/null 2>&1; then
+  xdg-open "$TARGET"
+else
+  echo "Please open this file in your browser: $TARGET"
+fi
+
