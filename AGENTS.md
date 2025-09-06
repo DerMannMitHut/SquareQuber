@@ -54,4 +54,9 @@ Note: If wrappers don’t exist yet, add thin scripts that call your toolchain (
   3) Push changes. A pre-push hook enforces that the version increased vs. the remote.
   4) Enable GitHub Pages: Settings → Pages → Source: Deploy from a branch → `main` / `/docs`.
      Your app will be available at `https://<user>.github.io/<repo>/` (e.g., `https://DerMannMitHut.github.io/SquareQuber/`).
+
+## CI: Docs Auto‑Publish
+- Workflow: `.github/workflows/build.yml` builds the single file and updates `docs/` on every push to `main`.
+- Guard: The job skips when the actor is the GitHub Actions bot, avoiding infinite loops.
+- Commit: Uses `[skip ci]` in the message to prevent re-triggering other workflows.
      - Hooks path is set to `.githooks` by repo config; if needed, run `git config core.hooksPath .githooks`.

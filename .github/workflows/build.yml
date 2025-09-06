@@ -1,0 +1,37 @@
+name: Build and Publish Docs
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-docs:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build single-file app and docs
+        run: |
+          node --version
+          node scripts/build.mjs
+
+      - name: Commit and push updated docs
+        run: |
+          if [ -n "$(git status --porcelain docs)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add docs/
+            git commit -m "chore(docs): update GitHub Pages output [skip ci]"
+            git push
+          else
+            echo "No docs changes to commit."
+          fi
