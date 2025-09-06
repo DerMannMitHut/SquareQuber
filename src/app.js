@@ -429,6 +429,20 @@ function init() {
       span.textContent = `x${remain}`;
       div.appendChild(span);
       if (remain > 0) {
+        // Click/tap fallback: auto-place on click (helps browsers that don't deliver pointerup reliably)
+        const onAutoPlaceClick = (e) => {
+          if (state.solving) return;
+          e.preventDefault();
+          e.stopPropagation();
+          autoPlaceRandomFit(state, size);
+          renderInventory();
+          renderer.requestDraw();
+          updateStatus(false);
+        };
+        div.addEventListener('click', onAutoPlaceClick);
+        // Also bind on the thumbnail canvas for safety on some browsers
+        thumb.addEventListener('click', onAutoPlaceClick);
+
         // Unified tap-or-drag handler: start drag after threshold; otherwise treat as tap to auto-place
         div.addEventListener('pointerdown', (e) => {
           if (state.solving) return; // block during auto-fill
