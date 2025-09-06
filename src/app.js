@@ -77,6 +77,9 @@ function init() {
       this.preview = null;
       this.undo = [];
       this.redo = [];
+      this.solving = false;
+      this.solverPreview = null; // [{x,y,size}]
+      this._cancelSolve = null;
     }
     reset() {
       this.board.clear();
@@ -173,6 +176,24 @@ function init() {
         ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
         ctx.restore();
       }
+      // Draw solver preview placements (semi-transparent overlay)
+      if (this.state.solverPreview && this.state.solverPreview.length) {
+        ctx.save();
+        for (const g of this.state.solverPreview) {
+          const x = g.x * cs;
+          const y = g.y * cs;
+          const w = g.size * cs;
+          const h = g.size * cs;
+          const base = COLORS[(g.size - 1) % COLORS.length];
+          ctx.fillStyle = hexToRgba(base, 0.35);
+          ctx.fillRect(x, y, w, h);
+          ctx.lineWidth = 1;
+          ctx.setLineDash([4, 3]);
+          ctx.strokeStyle = '#94a3b8';
+          ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+        }
+        ctx.restore();
+      }
       if (this.state.preview) {
         const pr = this.state.preview;
         ctx.fillStyle = pr.valid ? 'rgba(34,197,94,.5)' : 'rgba(239,68,68,.5)';
@@ -180,6 +201,15 @@ function init() {
       }
       this.needsDraw = false;
     }
+  }
+
+  function hexToRgba(hex, alpha) {
+    const h = hex.replace('#', '');
+    const bigint = parseInt(h.length === 3 ? h.split('').map((c)=>c+c).join('') : h, 16);
+    const r = (bigint >> 16) & 255;
+    const g = (bigint >> 8) & 255;
+    const b = bigint & 255;
+    return `rgba(${r},${g},${b},${alpha})`;
   }
 
   class DragController {
@@ -391,10 +421,23 @@ function init() {
     renderer.requestDraw();
   });
 
-  solveBtn.addEventListener('click', () => {
-    const result = solveRemaining(state);
-    if (!result.ok) {
-      statusEl.textContent = 'Keine Lösung ab aktueller Belegung gefunden.';
+  solveBtn.addEventListener('click', async () => {
+    if (state.solving) {
+      if (state._cancelSolve) state._cancelSolve();
+      return;
+    }
+    state.solving = true;
+    solveBtn.textContent = 'Abbrechen';
+    const out = await solveRemainingAsync(state, (stats, preview) => {
+      state.solverPreview = preview;
+      statusEl.textContent = `Auto‑Füllen: Knoten ${stats.nodes} • Tiefe ${stats.depth} • Platz. ${preview.length}`;
+      renderer.requestDraw();
+    });
+    state.solving = false;
+    state.solverPreview = null;
+    solveBtn.textContent = 'Auto‑Füllen';
+    if (!out.ok) {
+      statusEl.textContent = out.reason === 'cancel' ? 'Auto‑Füllen abgebrochen.' : 'Keine Lösung gefunden.';
     } else {
       renderInventory();
       renderer.requestDraw();
@@ -499,3 +542,78 @@ function solveRemaining(state) {
   if (steps.length) state.pushStep({ batch: true, steps });
   return { ok: true, count: steps.length };
 }
+
+// Async variant with periodic preview updates
+async function solveRemainingAsync(state, onTick) {
+  const size = state.board.size;
+  const cells = state.board.cells.map((row) => row.slice());
+  const available = new Map();
+  for (let s = 1; s <= 8; s++) available.set(s, []);
+  for (const p of state.inventory) if (!p.placed) available.get(p.size).push(p);
+  const sizesDesc = [...available.keys()].sort((a, b) => b - a);
+
+  const placements = []; // {pieceId,x,y,size}
+  const stats = { nodes: 0, depth: 0 };
+  let lastTick = 0;
+  let cancelled = false;
+  state._cancelSolve = () => { cancelled = true; };
+
+  const findNextEmpty = () => {
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) if (cells[y][x] === 0) return { x, y };
+    return null;
+  };
+  const canPlaceAt = (x, y, s) => {
+    if (x + s > size || y + s > size) return false;
+    for (let j = 0; j < s; j++) for (let i = 0; i < s; i++) if (cells[y + j][x + i] !== 0) return false;
+    return true;
+  };
+  const doPlace = (x, y, s, id) => { for (let j = 0; j < s; j++) for (let i = 0; i < s; i++) cells[y + j][x + i] = id; };
+  const unPlace = (x, y, s) => { for (let j = 0; j < s; j++) for (let i = 0; i < s; i++) cells[y + j][x + i] = 0; };
+
+  async function backtrack(depth) {
+    if (cancelled) return false;
+    const spot = findNextEmpty();
+    if (!spot) return true;
+    const { x, y } = spot;
+    stats.depth = Math.max(stats.depth, depth);
+    for (const s of sizesDesc) {
+      const pool = available.get(s);
+      if (!pool || pool.length === 0) continue;
+      if (!canPlaceAt(x, y, s)) continue;
+      const piece = pool.pop();
+      doPlace(x, y, s, piece.id);
+      placements.push({ pieceId: piece.id, x, y, size: s });
+      stats.nodes++;
+      const now = Date.now();
+      if (now - lastTick >= 1000) {
+        lastTick = now;
+        onTick?.(stats, placements.map((p) => ({ x: p.x, y: p.y, size: p.size })));
+        await sleep(0);
+      }
+      if (await backtrack(depth + 1)) return true;
+      placements.pop();
+      unPlace(x, y, s);
+      pool.push(piece);
+      if (cancelled) return false;
+    }
+    return false;
+  }
+
+  const solved = await backtrack(1);
+  state._cancelSolve = null;
+  if (cancelled) return { ok: false, reason: 'cancel' };
+  if (!solved) return { ok: false };
+
+  const steps = [];
+  for (const pl of placements) {
+    const piece = state.inventory.find((p) => p.id === pl.pieceId);
+    if (piece.placed) continue;
+    piece.x = pl.x; piece.y = pl.y; piece.placed = true;
+    state.board.place(piece, pl.x, pl.y);
+    steps.push({ pieceId: piece.id, fromX: 0, fromY: 0, fromPlaced: false, toX: pl.x, toY: pl.y, toPlaced: true });
+  }
+  if (steps.length) state.pushStep({ batch: true, steps });
+  return { ok: true, count: steps.length };
+}
+
+function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
