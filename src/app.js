@@ -248,14 +248,18 @@ function init() {
       e.preventDefault();
       const rect = this.canvas.getBoundingClientRect();
       const cs = this.renderer.cellSize;
-      const x = Math.floor((e.clientX - rect.left) / cs);
-      const y = Math.floor((e.clientY - rect.top) / cs);
+      const scaleX = this.canvas.width / rect.width;
+      const scaleY = this.canvas.height / rect.height;
+      const cx = (e.clientX - rect.left) * scaleX;
+      const cy = (e.clientY - rect.top) * scaleY;
+      const x = Math.floor(cx / cs);
+      const y = Math.floor(cy / cs);
       const piece = this.state.inventory.find(
         (p) => p.placed && x >= p.x && x < p.x + p.size && y >= p.y && y < p.y + p.size
       );
       if (!piece) return;
-      const px = e.clientX - rect.left - piece.x * cs;
-      const py = e.clientY - rect.top - piece.y * cs;
+      const px = cx - piece.x * cs;
+      const py = cy - piece.y * cs;
       this.start(piece, px, py);
     }
     onContextMenu(e) {
@@ -295,8 +299,12 @@ function init() {
       if (!this.active) return;
       const rect = this.canvas.getBoundingClientRect();
       const cs = this.renderer.cellSize;
-      const px = e.clientX - rect.left - this.offsetX;
-      const py = e.clientY - rect.top - this.offsetY;
+      const scaleX = this.canvas.width / rect.width;
+      const scaleY = this.canvas.height / rect.height;
+      const cx = (e.clientX - rect.left) * scaleX;
+      const cy = (e.clientY - rect.top) * scaleY;
+      const px = cx - this.offsetX;
+      const py = cy - this.offsetY;
       const bx = Math.round(px / cs);
       const by = Math.round(py / cs);
       const valid = canPlace(this.state.board, this.active, bx, by);

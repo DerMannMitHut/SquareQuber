@@ -61,6 +61,7 @@ main.main {
   align-items: center;
   gap: 0.5rem;
   cursor: grab;
+  touch-action: none;
 }
 
 .piece-thumb canvas {
