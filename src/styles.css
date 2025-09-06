@@ -61,7 +61,8 @@ main.main {
 
 #board {
   background: #1e293b;
-  touch-action: none;
+  /* Allow native page panning on touch; drag uses long-press */
+  touch-action: pan-x pan-y;
 }
 
 #inventory {

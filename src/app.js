@@ -315,7 +315,6 @@ function init() {
     }
     onCanvasDown(e) {
       if (this.state.solving) return; // block interactions during auto-fill
-      e.preventDefault();
       const cs = this.renderer.cellSize;
       const { cx, cy } = toCanvasCoords(this.canvas, e);
       const x = Math.floor(cx / cs);
@@ -323,10 +322,44 @@ function init() {
       const piece = this.state.inventory.find(
         (p) => p.placed && x >= p.x && x < p.x + p.size && y >= p.y && y < p.y + p.size
       );
-      if (!piece) return;
+      if (!piece) return; // nothing to drag
       const px = cx - piece.x * cs;
       const py = cy - piece.y * cs;
-      this.start(piece, px, py);
+      if (e.pointerType === 'touch') {
+        // Long-press to start drag; allow native panning otherwise
+        const startX = e.clientX;
+        const startY = e.clientY;
+        let started = false;
+        const threshold = 10;
+        const startDrag = () => {
+          if (started) return;
+          started = true;
+          this.start(piece, px, py);
+        };
+        const t = setTimeout(startDrag, 250);
+        const move = (ev) => {
+          if (started) return;
+          const dx = Math.abs(ev.clientX - startX);
+          const dy = Math.abs(ev.clientY - startY);
+          if (dx > threshold || dy > threshold) {
+            clearTimeout(t);
+            cleanup();
+          }
+        };
+        const up = () => { clearTimeout(t); cleanup(); };
+        const cleanup = () => {
+          window.removeEventListener('pointermove', move);
+          window.removeEventListener('pointerup', up);
+          window.removeEventListener('pointercancel', up);
+        };
+        window.addEventListener('pointermove', move, { passive: true });
+        window.addEventListener('pointerup', up);
+        window.addEventListener('pointercancel', up);
+      } else {
+        // Mouse/pen: start immediately
+        e.preventDefault();
+        this.start(piece, px, py);
+      }
     }
     onContextMenu(e) {
       if (this.state.solving) return; // block interactions during auto-fill
