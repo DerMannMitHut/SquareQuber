@@ -398,7 +398,7 @@ function init() {
   const versionEl = document.getElementById('version');
   if (versionEl) {
     const ver = window.__APP_VERSION__ || 'dev';
-    versionEl.textContent = `v${ver}`;
+    versionEl.textContent = `${ver}`;
   }
 
   function updateStatus(overlap) {

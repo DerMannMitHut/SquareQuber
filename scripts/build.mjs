@@ -161,6 +161,8 @@ async function build() {
   } else {
     inlined += verScript;
   }
+  // Pre-fill visible version text as a fallback if JS is cached/disabled
+  inlined = inlined.replace(/(<span[^>]*id=["']version["'][^>]*>)(<\/span>)/i, `$1v${version}$2`);
   validateNoExternals(inlined);
   await mkdir(distDir, { recursive: true });
   const out = path.join(distDir, 'SquareQuber.html');

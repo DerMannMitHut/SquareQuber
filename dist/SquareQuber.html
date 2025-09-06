@@ -10,7 +10,7 @@
   </head>
   <body>
     <header class="app-header">
-      <h1>SquareQuber <span id="version" class="version"></span></h1>
+      <h1>SquareQuber <span id="version" class="version">v1.0.2</span></h1>
       <div class="toolbar">
         <button id="newBtn">New</button>
         <button id="undoBtn">Undo</button>
@@ -427,7 +427,7 @@ function init() {
   const versionEl = document.getElementById('version');
   if (versionEl) {
     const ver = window.__APP_VERSION__ || 'dev';
-    versionEl.textContent = `v${ver}`;
+    versionEl.textContent = `${ver}`;
   }
 
   function updateStatus(overlap) {
