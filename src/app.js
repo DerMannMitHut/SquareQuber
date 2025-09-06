@@ -307,6 +307,7 @@ function init() {
       });
       this.inventoryCb();
       this.statusCb(false);
+      clearSolveStatus();
       this.renderer.requestDraw();
     }
     startFromInventory(piece, e) {
@@ -356,6 +357,7 @@ function init() {
           toY: piece.y,
           toPlaced: true
         });
+        clearSolveStatus();
       } else if (pr && !this.state.board.inBounds(pr.x, pr.y, piece.size) && this.wasPlaced) {
         // Dropped outside the board: return to inventory if it was previously placed
         piece.placed = false;
@@ -368,6 +370,7 @@ function init() {
           toY: 0,
           toPlaced: false,
         });
+        clearSolveStatus();
       } else {
         // Invalid placement (overlap or out-of-bounds from inventory): revert
         piece.x = this.origX;
@@ -403,6 +406,10 @@ function init() {
   function updateStatus(overlap) {
     statusEl.textContent = `Filled cells: ${state.board.filled}/1296 • Overlap: ${overlap ? 'Yes' : 'No'}`;
     progressEl.textContent = `${state.board.filled}/1296`;
+  }
+
+  function clearSolveStatus() {
+    if (solveStatusEl) solveStatusEl.textContent = '';
   }
 
   function renderInventory() {
@@ -489,6 +496,7 @@ function init() {
     renderInventory();
     renderer.requestDraw();
     updateStatus(false);
+    clearSolveStatus();
   });
 
   newBtn.addEventListener('click', () => {
@@ -504,6 +512,7 @@ function init() {
     renderInventory();
     renderer.requestDraw();
     updateStatus(false);
+    clearSolveStatus();
   });
 
   // Grid toggle removed; grid always visible
