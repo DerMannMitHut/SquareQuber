@@ -320,6 +320,11 @@ function init() {
       canvas.addEventListener('pointerdown', (e) => this.onCanvasDown(e));
       // Right-click to put a tile back into inventory
       canvas.addEventListener('contextmenu', (e) => this.onContextMenu(e));
+      // Some browsers fire auxclick/pointerdown with button===2 instead of contextmenu
+      canvas.addEventListener('auxclick', (e) => this.onAuxClick(e));
+      canvas.addEventListener('pointerdown', (e) => {
+        if (e.button === 2) this.onAuxClick(e);
+      });
     }
     start(piece, px, py) {
       this.active = piece;
@@ -354,6 +359,15 @@ function init() {
     onContextMenu(e) {
       if (this.state.solving) return; // block interactions during auto-fill
       e.preventDefault();
+      this.removePieceAtEvent(e);
+    }
+    onAuxClick(e) {
+      if (this.state.solving) return;
+      if (e.button !== undefined && e.button !== 2) return;
+      e.preventDefault();
+      this.removePieceAtEvent(e);
+    }
+    removePieceAtEvent(e) {
       const cs = this.renderer.cellSize;
       const { cx, cy } = toCanvasCoords(this.canvas, e);
       const x = Math.floor(cx / cs);
@@ -362,7 +376,6 @@ function init() {
         (p) => p.placed && x >= p.x && x < p.x + p.size && y >= p.y && y < p.y + p.size
       );
       if (!piece) return;
-      // Remove from board, keep in inventory
       this.state.board.remove(piece);
       const fromX = piece.x, fromY = piece.y;
       piece.placed = false;
