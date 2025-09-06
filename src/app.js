@@ -73,7 +73,7 @@ function init() {
     constructor() {
       this.board = new Board(BOARD_SIZE);
       this.inventory = createInventory();
-      this.grid = true;
+      // Grid always shown
       this.preview = null;
       this.undo = [];
       this.redo = [];
@@ -148,18 +148,17 @@ function init() {
       ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
       ctx.fillStyle = '#1e293b';
       ctx.fillRect(0, 0, sizePx, sizePx);
-      if (this.state.grid) {
-        ctx.strokeStyle = '#334155';
-        ctx.lineWidth = 1;
-        for (let i = 0; i <= BOARD_SIZE; i++) {
-          const p = i * cs;
-          ctx.beginPath();
-          ctx.moveTo(p, 0);
-          ctx.lineTo(p, sizePx);
-          ctx.moveTo(0, p);
-          ctx.lineTo(sizePx, p);
-          ctx.stroke();
-        }
+      // Always draw grid
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= BOARD_SIZE; i++) {
+        const p = i * cs;
+        ctx.beginPath();
+        ctx.moveTo(p, 0);
+        ctx.lineTo(p, sizePx);
+        ctx.moveTo(0, p);
+        ctx.lineTo(sizePx, p);
+        ctx.stroke();
       }
       for (const piece of this.state.inventory) {
         if (!piece.placed) continue;
@@ -390,7 +389,6 @@ function init() {
   const progressEl = document.getElementById('progress');
   const newBtn = document.getElementById('newBtn');
   const undoBtn = document.getElementById('undoBtn');
-  const gridBtn = document.getElementById('gridBtn');
   const solveBtn = document.getElementById('solveBtn');
   const zoomInput = document.getElementById('zoom');
 
@@ -483,10 +481,7 @@ function init() {
     updateStatus(false);
   });
 
-  gridBtn.addEventListener('click', () => {
-    state.grid = !state.grid;
-    renderer.requestDraw();
-  });
+  // Grid toggle removed; grid always visible
 
   solveBtn.addEventListener('click', async () => {
     if (state.solving) {
