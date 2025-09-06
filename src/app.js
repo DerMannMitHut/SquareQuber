@@ -1,7 +1,15 @@
 // Application bootstrap
 function init() {
+  // Constants
   const BOARD_SIZE = 36;
   const COLORS = ['#f87171','#fbbf24','#34d399','#60a5fa','#c084fc','#f472b6','#a78bfa','#facc15'];
+  const GRID_COLOR = '#334155';
+  const TILE_BORDER_COLOR = '#0b1220';
+  const DRAG_THRESHOLD_PX = 5;
+  const THUMB_UNIT = 20; // px per size unit in inventory
+  const ZOOM_MIN = 0.3;
+  const ZOOM_MAX = 2;
+  const SOLVER_TICK_MS = 1000;
 
   class Piece {
     constructor(id, size) {
@@ -149,7 +157,7 @@ function init() {
       ctx.fillStyle = '#1e293b';
       ctx.fillRect(0, 0, sizePx, sizePx);
       // Always draw grid
-      ctx.strokeStyle = '#334155';
+      ctx.strokeStyle = GRID_COLOR;
       ctx.lineWidth = 1;
       for (let i = 0; i <= BOARD_SIZE; i++) {
         const p = i * cs;
@@ -171,7 +179,7 @@ function init() {
         // Thin border to visually separate tiles
         ctx.save();
         ctx.lineWidth = 1;
-        ctx.strokeStyle = '#0b1220';
+        ctx.strokeStyle = TILE_BORDER_COLOR;
         ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
         // Label with area (size^2)
         const label = String(piece.size * piece.size);
@@ -193,7 +201,7 @@ function init() {
           ctx.setLineDash([4, 3]);
           ctx.strokeStyle = '#94a3b8';
           ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
-        }
+      }
         ctx.restore();
       }
       if (this.state.preview) {
@@ -231,6 +239,21 @@ function init() {
     ctx.restore();
   }
 
+  // Pointer utilities
+  function toCanvasCoords(canvas, e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const cx = (e.clientX - rect.left) * scaleX;
+    const cy = (e.clientY - rect.top) * scaleY;
+    return { cx, cy };
+  }
+
+  // Status formatting
+  function formatStatus(overlap) {
+    return `Filled cells: ${state.board.filled}/1296 • Overlap: ${overlap ? 'Yes' : 'No'}`;
+  }
+
   class DragController {
     constructor(canvas, state, renderer, statusCb, invCb) {
       this.canvas = canvas;
@@ -266,12 +289,8 @@ function init() {
     onCanvasDown(e) {
       if (this.state.solving) return; // block interactions during auto-fill
       e.preventDefault();
-      const rect = this.canvas.getBoundingClientRect();
       const cs = this.renderer.cellSize;
-      const scaleX = this.canvas.width / rect.width;
-      const scaleY = this.canvas.height / rect.height;
-      const cx = (e.clientX - rect.left) * scaleX;
-      const cy = (e.clientY - rect.top) * scaleY;
+      const { cx, cy } = toCanvasCoords(this.canvas, e);
       const x = Math.floor(cx / cs);
       const y = Math.floor(cy / cs);
       const piece = this.state.inventory.find(
@@ -285,10 +304,10 @@ function init() {
     onContextMenu(e) {
       if (this.state.solving) return; // block interactions during auto-fill
       e.preventDefault();
-      const rect = this.canvas.getBoundingClientRect();
       const cs = this.renderer.cellSize;
-      const x = Math.floor((e.clientX - rect.left) / cs);
-      const y = Math.floor((e.clientY - rect.top) / cs);
+      const { cx, cy } = toCanvasCoords(this.canvas, e);
+      const x = Math.floor(cx / cs);
+      const y = Math.floor(cy / cs);
       const piece = this.state.inventory.find(
         (p) => p.placed && x >= p.x && x < p.x + p.size && y >= p.y && y < p.y + p.size
       );
@@ -320,12 +339,8 @@ function init() {
     }
     onMove(e) {
       if (!this.active) return;
-      const rect = this.canvas.getBoundingClientRect();
       const cs = this.renderer.cellSize;
-      const scaleX = this.canvas.width / rect.width;
-      const scaleY = this.canvas.height / rect.height;
-      const cx = (e.clientX - rect.left) * scaleX;
-      const cy = (e.clientY - rect.top) * scaleY;
+      const { cx, cy } = toCanvasCoords(this.canvas, e);
       const px = cx - this.offsetX;
       const py = cy - this.offsetY;
       const bx = Math.round(px / cs);
@@ -387,7 +402,6 @@ function init() {
 
   const canvas = document.getElementById('board');
   const invEl = document.getElementById('inventory');
-  const statusEl = document.getElementById('status');
   const solveStatusEl = document.getElementById('solveStatus');
   const progressEl = document.getElementById('progress');
   const newBtn = document.getElementById('newBtn');
@@ -404,19 +418,12 @@ function init() {
   }
 
   function updateStatus(overlap) {
-    statusEl.textContent = `Filled cells: ${state.board.filled}/1296 • Overlap: ${overlap ? 'Yes' : 'No'}`;
     progressEl.textContent = `${state.board.filled}/1296`;
-    // Mirror status in the Auto-Fill status line during user interaction (not while solving)
-    if (solveStatusEl && !state.solving) {
-      solveStatusEl.textContent = `Filled cells: ${state.board.filled}/1296 • Overlap: ${overlap ? 'Yes' : 'No'}`;
-    }
+    if (solveStatusEl && !state.solving) solveStatusEl.textContent = formatStatus(overlap);
   }
 
   function clearSolveStatus() {
-    // Instead of emptying completely, show current filled/overlap status when not solving
-    if (solveStatusEl && !state.solving) {
-      solveStatusEl.textContent = `Filled cells: ${state.board.filled}/1296 • Overlap: No`;
-    }
+    if (solveStatusEl && !state.solving) solveStatusEl.textContent = formatStatus(false);
   }
 
   function renderInventory() {
@@ -427,7 +434,7 @@ function init() {
       div.className = 'piece-thumb';
       div.dataset.size = String(size);
       const thumb = document.createElement('canvas');
-      const t = 20;
+      const t = THUMB_UNIT;
       thumb.width = size * t;
       thumb.height = size * t;
       const ictx = thumb.getContext('2d');
@@ -443,46 +450,7 @@ function init() {
       span.textContent = `x${remain}`;
       div.appendChild(span);
       if (remain > 0) {
-        // Click/tap fallback: auto-place on click (helps browsers that don't deliver pointerup reliably)
-        const onAutoPlaceClick = (e) => {
-          if (state.solving) return;
-          e.preventDefault();
-          e.stopPropagation();
-          autoPlaceRandomFit(state, size);
-          renderInventory();
-          renderer.requestDraw();
-          updateStatus(false);
-        };
-        div.addEventListener('click', onAutoPlaceClick);
-        // Also bind on the thumbnail canvas for safety on some browsers
-        thumb.addEventListener('click', onAutoPlaceClick);
-
-        // Unified tap-or-drag handler: start drag after threshold; delegated click handles tap
-        div.addEventListener('pointerdown', (e) => {
-          if (state.solving) return; // block during auto-fill
-          const startX = e.clientX;
-          const startY = e.clientY;
-          let started = false;
-          const move = (ev) => {
-            const dx = ev.clientX - startX;
-            const dy = ev.clientY - startY;
-            if (!started && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
-              started = true;
-              inventoryDragActive = true;
-              const piece = state.inventory.find((p) => p.size === size && !p.placed);
-              if (piece) drag.startFromInventory(piece, ev);
-            }
-          };
-          const up = () => {
-            window.removeEventListener('pointermove', move);
-            window.removeEventListener('pointerup', up);
-            window.removeEventListener('pointercancel', up);
-            setTimeout(() => { inventoryDragActive = false; }, 0);
-          };
-          window.addEventListener('pointermove', move, { passive: true });
-          window.addEventListener('pointerup', up);
-          window.addEventListener('pointercancel', up);
-        });
+        // listeners are delegated on #inventory
       }
       invEl.appendChild(div);
     }
@@ -504,6 +472,37 @@ function init() {
     renderer.requestDraw();
     updateStatus(false);
     clearSolveStatus();
+  });
+
+  // Delegate pointerdown on inventory to start drag after threshold
+  invEl.addEventListener('pointerdown', (e) => {
+    if (state.solving) return;
+    const thumb = e.target.closest('.piece-thumb');
+    if (!thumb) return;
+    const size = parseInt(thumb.dataset.size || '0', 10);
+    if (!size) return;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    let started = false;
+    const move = (ev) => {
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+      if (!started && (Math.abs(dx) > DRAG_THRESHOLD_PX || Math.abs(dy) > DRAG_THRESHOLD_PX)) {
+        started = true;
+        inventoryDragActive = true;
+        const piece = state.inventory.find((p) => p.size === size && !p.placed);
+        if (piece) drag.startFromInventory(piece, ev);
+      }
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+      setTimeout(() => { inventoryDragActive = false; }, 0);
+    };
+    window.addEventListener('pointermove', move, { passive: true });
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
   });
 
   newBtn.addEventListener('click', () => {
@@ -586,7 +585,7 @@ function init() {
       sW = availW / canvasBaseW;
     }
     const sH = availH / canvasBaseH;
-    const scale = clamp(Math.min(sW, sH), 0.3, 2);
+    const scale = clamp(Math.min(sW, sH), ZOOM_MIN, ZOOM_MAX);
     renderer.setScale(scale);
     zoomInput.value = String(scale);
   }
@@ -650,7 +649,7 @@ async function solveRemainingAsync(state, onTick) {
       placements.push({ pieceId: piece.id, x, y, size: s });
       stats.nodes++;
       const now = Date.now();
-      if (now - lastTick >= 1000) {
+      if (now - lastTick >= SOLVER_TICK_MS) {
         lastTick = now;
         onTick?.(stats, placements.map((p) => ({ x: p.x, y: p.y, size: p.size })));
         await sleep(0);
@@ -692,32 +691,7 @@ function shuffleInPlace(arr) {
 }
 
 // Place the next available piece of given size at the first non-overlapping board position
-function autoPlaceFirstFit(state, size) {
-  const piece = state.inventory.find((p) => p.size === size && !p.placed);
-  if (!piece) return false;
-  const board = state.board;
-  for (let y = 0; y <= board.size - size; y++) {
-    for (let x = 0; x <= board.size - size; x++) {
-      if (canPlace(board, piece, x, y)) {
-        piece.x = x;
-        piece.y = y;
-        piece.placed = true;
-        board.place(piece, x, y);
-        state.pushStep({
-          pieceId: piece.id,
-          fromX: 0,
-          fromY: 0,
-          fromPlaced: false,
-          toX: x,
-          toY: y,
-          toPlaced: true,
-        });
-        return true;
-      }
-    }
-  }
-  return false;
-}
+// Removed: autoPlaceFirstFit (replaced by random-fit placement)
 
 // Random-fit variant: try all valid positions in random order (or up to a cap)
 function autoPlaceRandomFit(state, size) {

@@ -97,11 +97,7 @@ button:hover {
   filter: brightness(1.05);
 }
 
-footer#status {
-  padding: 0.5rem 1rem;
-  border-top: 1px solid #1f2937;
-  color: var(--muted);
-}
+/* footer status removed */
 
 /* Block interactions with tiles during auto-fill */
 body.solving #board,
