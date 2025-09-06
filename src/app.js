@@ -386,6 +386,7 @@ function init() {
   const canvas = document.getElementById('board');
   const invEl = document.getElementById('inventory');
   const statusEl = document.getElementById('status');
+  const solveStatusEl = document.getElementById('solveStatus');
   const progressEl = document.getElementById('progress');
   const newBtn = document.getElementById('newBtn');
   const undoBtn = document.getElementById('undoBtn');
@@ -472,6 +473,7 @@ function init() {
     renderInventory();
     renderer.requestDraw();
     updateStatus(false);
+    if (solveStatusEl) solveStatusEl.textContent = '';
   });
 
   undoBtn.addEventListener('click', () => {
@@ -497,7 +499,7 @@ function init() {
     const out = await solveRemainingAsync(state, (stats, preview) => {
       state.solverPreview = preview;
       const nodes = Number(stats.nodes).toLocaleString('en-US');
-      statusEl.textContent = `Auto-Fill: Nodes ${nodes} • Depth ${stats.depth} • Placed ${preview.length}`;
+      if (solveStatusEl) solveStatusEl.textContent = `Auto-Fill: Nodes ${nodes} • Depth ${stats.depth} • Placed ${preview.length}`;
       renderer.requestDraw();
     });
     state.solving = false;
@@ -505,11 +507,12 @@ function init() {
     document.body.classList.remove('solving');
     solveBtn.textContent = 'Auto-Fill';
     if (!out.ok) {
-      statusEl.textContent = out.reason === 'cancel' ? 'Auto-Fill cancelled.' : 'No solution found.';
+      if (solveStatusEl) solveStatusEl.textContent = out.reason === 'cancel' ? 'Auto-Fill cancelled.' : 'No solution found.';
     } else {
       renderInventory();
       renderer.requestDraw();
       updateStatus(false);
+      if (solveStatusEl) solveStatusEl.textContent = 'Auto-Fill completed.';
     }
   });
 

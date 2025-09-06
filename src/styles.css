@@ -44,6 +44,11 @@ h1 .version {
   gap: 0.5rem;
 }
 
+.solve-status {
+  margin-top: 0.25rem;
+  color: var(--muted);
+}
+
 main.main {
   display: flex;
   gap: 1rem;
