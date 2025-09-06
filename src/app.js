@@ -658,10 +658,10 @@ async function solveRemainingAsync(state, onTick, debugLog) {
   const available = new Map();
   for (let s = 1; s <= 8; s++) available.set(s, []);
   for (const p of state.inventory) if (!p.placed) available.get(p.size).push(p);
-  const sizesOrder = [...available.keys()].filter((s) => (available.get(s) || []).length > 0);
-  shuffleInPlace(sizesOrder);
-  for (const s of sizesOrder) shuffleInPlace(available.get(s));
-  if (debugLog) debugLog('sizesOrder', sizesOrder.map((s) => s * s));
+  const baseSizes = [...available.keys()].filter((s) => (available.get(s) || []).length > 0);
+  shuffleInPlace(baseSizes);
+  const maxPlacements = [...available.values()].reduce((n, arr) => n + (arr?.length || 0), 0);
+  const sizeOrders = Array.from({ length: Math.max(1, maxPlacements) }, () => shuffleInPlace([...baseSizes]));
 
   const placements = []; // {pieceId,x,y,size}
   const stats = { nodes: 0, depth: 0 };
@@ -676,8 +676,8 @@ async function solveRemainingAsync(state, onTick, debugLog) {
   const attemptSeq = [];
 
   // Simple scan: choose the first empty cell (row-major)
-  function findNextEmpty() {
-    for (let y = 0; y < size; y++) {
+  function findNextEmpty(startingRow) {
+    for (let y = startingRow; y < size; y++) {
       for (let x = 0; x < size; x++) {
         if (cells[y][x] === 0) return { x, y };
       }
@@ -692,14 +692,15 @@ async function solveRemainingAsync(state, onTick, debugLog) {
   const doPlace = (x, y, s, id) => { for (let j = 0; j < s; j++) for (let i = 0; i < s; i++) cells[y + j][x + i] = id; };
   const unPlace = (x, y, s) => { for (let j = 0; j < s; j++) for (let i = 0; i < s; i++) cells[y + j][x + i] = 0; };
 
-  async function backtrack(depth) {
+  async function backtrack(depth, startingRow) {
     if (cancelled) return false;
-    const spot = findNextEmpty();
+    const spot = findNextEmpty(startingRow);
     if (!spot) return true; // no empty cells left
     const { x, y } = spot;
     stats.depth = Math.max(stats.depth, depth);
-    // Iterate sizes in randomized order, using pools
-    for (const s of sizesOrder) {
+    // Iterate sizes in randomized order for this depth, using pools
+    const order = sizeOrders[depth] || baseSizes;
+    for (const s of order) {
       if (cancelled) return false;
       const pool = available.get(s);
       if (!pool || pool.length === 0) continue;
@@ -719,7 +720,7 @@ async function solveRemainingAsync(state, onTick, debugLog) {
         onTick?.(stats, placements.map((p) => ({ x: p.x, y: p.y, size: p.size })));
         await sleep(0);
       }
-      if (await backtrack(depth + 1)) return true;
+      if (await backtrack(depth + 1, y)) return true;
       placements.pop();
       unPlace(x, y, s);
       pool.push(piece);
@@ -730,7 +731,7 @@ async function solveRemainingAsync(state, onTick, debugLog) {
 
   let solved = false;
   try {
-    solved = await backtrack(1);
+    solved = await backtrack(0, 0);
   } finally {
     state._cancelSolve = null;
   }
