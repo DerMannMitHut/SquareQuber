@@ -1,4 +1,8 @@
 // Application bootstrap
+// Solver constants must be available to async solver outside init()
+const SOLVER_TICK_MS = 200; // time-based UI update cadence in ms
+const SOLVER_YIELD_NODES = 0; // 0 disables node-based yields
+
 function init() {
   // Constants
   const BOARD_SIZE = 36;
@@ -9,8 +13,7 @@ function init() {
   const THUMB_UNIT = 20; // px per size unit in inventory
   const ZOOM_MIN = 0.3;
   const ZOOM_MAX = 2;
-  const SOLVER_TICK_MS = 500; // update roughly twice per second
-  const SOLVER_YIELD_NODES = 2000; // force a yield every N nodes regardless of time
+  const DEBUG = /[?&#]debug=1/i.test(location.href) || localStorage.getItem('SQ_DEBUG') === '1';
 
   class Piece {
     constructor(id, size) {
@@ -435,6 +438,7 @@ function init() {
     const ver = window.__APP_VERSION__ || 'dev';
     versionEl.textContent = `${ver}`;
   }
+  function dbg(...args) { if (DEBUG) { console.log('[AutoFill]', ...args); } }
 
   function updateStatus(overlap) {
     progressEl.textContent = `${state.board.filled}/1296`;
@@ -551,16 +555,26 @@ function init() {
     state.solving = true;
     document.body.classList.add('solving');
     solveBtn.textContent = 'Cancel';
-    const out = await solveRemainingAsync(state, (stats, preview) => {
-      state.solverPreview = preview;
-      const nodes = Number(stats.nodes).toLocaleString('en-US');
-      if (solveStatusEl) solveStatusEl.textContent = `Auto-Fill: Nodes ${nodes} • Depth ${stats.depth} • Placed ${preview.length}`;
-      renderer.requestDraw();
-    });
-    state.solving = false;
-    state.solverPreview = null;
-    document.body.classList.remove('solving');
-    solveBtn.textContent = 'Auto-Fill';
+    dbg('start');
+    let out = { ok: false, reason: 'cancel' };
+    try {
+      out = await solveRemainingAsync(state, (stats, preview) => {
+        state.solverPreview = preview;
+        const nodes = Number(stats.nodes).toLocaleString('en-US');
+        if (solveStatusEl) solveStatusEl.textContent = `Auto-Fill: Nodes ${nodes} • Depth ${stats.depth} • Placed ${preview.length}`;
+        renderer.requestDraw();
+        if (DEBUG) dbg('tick', { nodes: stats.nodes, depth: stats.depth, placed: preview.length });
+      });
+    } catch (err) {
+      dbg('error', err);
+      if (solveStatusEl) solveStatusEl.textContent = 'Auto-Fill error (see console).';
+    } finally {
+      state.solving = false;
+      state.solverPreview = null;
+      document.body.classList.remove('solving');
+      solveBtn.textContent = 'Auto-Fill';
+      dbg('done', out);
+    }
     if (!out.ok) {
       if (solveStatusEl) solveStatusEl.textContent = out.reason === 'cancel' ? 'Auto-Fill cancelled.' : 'No solution found.';
     } else {
@@ -630,8 +644,9 @@ async function solveRemainingAsync(state, onTick) {
   const available = new Map();
   for (let s = 1; s <= 8; s++) available.set(s, []);
   for (const p of state.inventory) if (!p.placed) available.get(p.size).push(p);
-  // Use size-descending order for efficiency; randomize within pools per run
-  const sizesOrder = [...available.keys()].sort((a, b) => b - a);
+  // Randomize order of sizes that still have available pieces; also shuffle pools
+  const sizesOrder = [...available.keys()].filter((s) => (available.get(s) || []).length > 0);
+  shuffleInPlace(sizesOrder);
   for (const s of sizesOrder) shuffleInPlace(available.get(s));
 
   const placements = []; // {pieceId,x,y,size}
@@ -671,7 +686,10 @@ async function solveRemainingAsync(state, onTick) {
       placements.push({ pieceId: piece.id, x, y, size: s });
       stats.nodes++;
       const now = Date.now();
-      if (now - lastTick >= SOLVER_TICK_MS || (stats.nodes % SOLVER_YIELD_NODES === 0)) {
+      if (
+        now - lastTick >= SOLVER_TICK_MS ||
+        (SOLVER_YIELD_NODES > 0 && stats.nodes % SOLVER_YIELD_NODES === 0)
+      ) {
         lastTick = now;
         onTick?.(stats, placements.map((p) => ({ x: p.x, y: p.y, size: p.size })));
         await sleep(0);
@@ -685,8 +703,12 @@ async function solveRemainingAsync(state, onTick) {
     return false;
   }
 
-  const solved = await backtrack(1);
-  state._cancelSolve = null;
+  let solved = false;
+  try {
+    solved = await backtrack(1);
+  } finally {
+    state._cancelSolve = null;
+  }
   if (cancelled) return { ok: false, reason: 'cancel' };
   if (!solved) return { ok: false };
 
@@ -723,7 +745,7 @@ function autoPlaceRandomFit(state, size) {
   const positions = [];
   for (let y = 0; y <= board.size - size; y++) {
     for (let x = 0; x <= board.size - size; x++) {
-      if (canPlace(board, piece, x, y)) positions.push({ x, y });
+      if (board.inBounds(x, y, size) && !board.overlap(x, y, size)) positions.push({ x, y });
     }
   }
   if (positions.length === 0) return false;
