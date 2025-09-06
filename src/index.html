@@ -9,15 +9,22 @@
   </head>
   <body>
     <header class="app-header">
-      <img src="../assets/logo.svg" alt="Logo" width="48" height="48" />
       <h1>SquareQuber</h1>
+      <div class="toolbar">
+        <button id="newBtn">Neu</button>
+        <button id="undoBtn">Rückgängig</button>
+        <button id="gridBtn">Raster</button>
+        <label>Zoom
+          <input id="zoom" type="range" min="0.5" max="2" step="0.1" value="1" />
+        </label>
+        <span id="progress">0/1296</span>
+      </div>
     </header>
-    <main id="app">
-      <p>Alles läuft in dieser einen Seite – keine Netzwerkzugriffe.</p>
-      <button id="actionBtn">Quadrat berechnen</button>
-      <div id="output" aria-live="polite"></div>
+    <main class="main">
+      <canvas id="board" width="720" height="720"></canvas>
+      <div id="inventory"></div>
     </main>
+    <footer id="status">Gefüllte Zellen: 0/1296 • Überlappung: Nein</footer>
     <script src="./app.js"></script>
   </body>
-  </html>
-
+</html>
