@@ -39,3 +39,15 @@ Note: If wrappers don’t exist yet, add thin scripts that call your toolchain (
 - No external URLs in production output. Quick check: `rg -n "(https?://|<script src=|<link .*href=)" dist/SquareQuber.html`.
 - Do not commit secrets. Use `.env.local` (gitignored) and document vars in `.env.example` if needed.
 - Pin dependencies where practical and update via PRs.
+
+## Release & Versioning
+- Versioning: Follow SemVer (MAJOR.MINOR.PATCH).
+- Source of truth: `package.json#version`. The build injects this value into the app (`window.__APP_VERSION__`), which is shown next to the title in the UI.
+- Bump rules:
+  - PATCH: backwards-compatible fixes, docs, build tweaks.
+  - MINOR: backwards-compatible features, UI additions, solver improvements.
+  - MAJOR: breaking changes (API, file format, behavior that invalidates prior usage).
+- Process:
+  1) Update `package.json` version.
+  2) Run `npm run build` and verify `dist/SquareQuber.html` shows the new version.
+  3) Commit with `chore(release): vX.Y.Z` and push.

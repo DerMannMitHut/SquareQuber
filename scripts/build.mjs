@@ -145,7 +145,22 @@ function validateNoExternals(html) {
 
 async function build() {
   const html = await readFile(htmlEntry, 'utf8');
-  const inlined = await inlineHTML(html, path.dirname(htmlEntry));
+  let inlined = await inlineHTML(html, path.dirname(htmlEntry));
+  // Inject version from package.json for UI display
+  const pkgPath = path.join(projectRoot, 'package.json');
+  let version = '0.0.0-dev';
+  try {
+    const pkg = JSON.parse(await readFile(pkgPath, 'utf8'));
+    version = pkg.version || version;
+  } catch {}
+  const verScript = `<script>window.__APP_VERSION__=${JSON.stringify(version)};<\/script>`;
+  if (/<\/head>/i.test(inlined)) {
+    inlined = inlined.replace(/<\/head>/i, verScript + '\n  </head>');
+  } else if (/<\/body>/i.test(inlined)) {
+    inlined = inlined.replace(/<\/body>/i, verScript + '\n</body>');
+  } else {
+    inlined += verScript;
+  }
   validateNoExternals(inlined);
   await mkdir(distDir, { recursive: true });
   const out = path.join(distDir, 'SquareQuber.html');

@@ -32,6 +32,12 @@ body {
   border-bottom: 1px solid #1f2937;
 }
 
+h1 .version {
+  font-size: 0.85em;
+  font-weight: normal;
+  color: var(--muted);
+}
+
 .toolbar {
   display: flex;
   align-items: center;

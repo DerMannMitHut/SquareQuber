@@ -375,6 +375,10 @@ function init() {
 
   const state = new GameState();
   const renderer = new Renderer(canvas, state);
+  const versionEl = document.getElementById('version');
+  if (versionEl && window.__APP_VERSION__) {
+    versionEl.textContent = `v${window.__APP_VERSION__}`;
+  }
 
   function updateStatus(overlap) {
     statusEl.textContent = `Filled cells: ${state.board.filled}/1296 • Overlap: ${overlap ? 'Yes' : 'No'}`;
