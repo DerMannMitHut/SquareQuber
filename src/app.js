@@ -406,10 +406,17 @@ function init() {
   function updateStatus(overlap) {
     statusEl.textContent = `Filled cells: ${state.board.filled}/1296 • Overlap: ${overlap ? 'Yes' : 'No'}`;
     progressEl.textContent = `${state.board.filled}/1296`;
+    // Mirror status in the Auto-Fill status line during user interaction (not while solving)
+    if (solveStatusEl && !state.solving) {
+      solveStatusEl.textContent = `Filled cells: ${state.board.filled}/1296 • Overlap: ${overlap ? 'Yes' : 'No'}`;
+    }
   }
 
   function clearSolveStatus() {
-    if (solveStatusEl) solveStatusEl.textContent = '';
+    // Instead of emptying completely, show current filled/overlap status when not solving
+    if (solveStatusEl && !state.solving) {
+      solveStatusEl.textContent = `Filled cells: ${state.board.filled}/1296 • Overlap: No`;
+    }
   }
 
   function renderInventory() {
