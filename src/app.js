@@ -450,19 +450,43 @@ function init() {
     renderer.setScale(z);
   });
 
-  // Auto scale for portrait to fit width
-  function autoScalePortrait() {
+  // Auto scale on window changes so content fits the page
+  function autoScaleToFit() {
     const portrait = window.matchMedia('(orientation: portrait)').matches || window.innerHeight > window.innerWidth;
-    if (!portrait) return;
-    const padding = 16; // approximate horizontal padding
-    const target = Math.max(240, window.innerWidth - padding * 2);
-    const scale = Math.max(0.4, Math.min(2, target / canvas.width));
+    const mainEl = document.querySelector('main.main');
+    const inv = document.getElementById('inventory');
+    const header = document.querySelector('header.app-header');
+    const footer = document.getElementById('status');
+    const gs = window.getComputedStyle(mainEl);
+    const padX = (parseFloat(gs.paddingLeft) || 0) + (parseFloat(gs.paddingRight) || 0);
+    const gap = parseFloat(gs.gap) || 0;
+    const canvasBaseW = canvas.width;
+    const canvasBaseH = canvas.height;
+
+    const viewportW = window.innerWidth;
+    const viewportH = window.innerHeight;
+    const headerH = header?.offsetHeight || 0;
+    const footerH = footer?.offsetHeight || 0;
+    const availH = Math.max(200, viewportH - headerH - footerH - 8);
+
+    let sW;
+    if (portrait) {
+      const availW = Math.max(240, viewportW - padX);
+      sW = availW / canvasBaseW;
+    } else {
+      const invW = inv?.offsetWidth || 160; // fallback
+      const availW = Math.max(240, viewportW - padX - gap - invW);
+      sW = availW / canvasBaseW;
+    }
+    const sH = availH / canvasBaseH;
+    const scale = clamp(Math.min(sW, sH), 0.3, 2);
     renderer.setScale(scale);
     zoomInput.value = String(scale);
   }
-  window.addEventListener('resize', autoScalePortrait, { passive: true });
-  window.addEventListener('orientationchange', autoScalePortrait);
-  autoScalePortrait();
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  window.addEventListener('resize', autoScaleToFit, { passive: true });
+  window.addEventListener('orientationchange', autoScaleToFit);
+  autoScaleToFit();
 
   renderInventory();
   renderer.requestDraw();
