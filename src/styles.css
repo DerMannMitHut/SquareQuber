@@ -2,10 +2,13 @@
 *{box-sizing:border-box}
 html,body{height:100%}
 body{margin:0;font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;color:var(--fg);background:var(--bg)}
-.app-header{display:flex;align-items:center;gap:.75rem;padding:1rem;border-bottom:1px solid #1f2937}
-h1{font-size:1.25rem;margin:0}
-main{padding:1rem;max-width:720px}
+.app-header{display:flex;align-items:center;gap:1rem;padding:1rem;border-bottom:1px solid #1f2937}
+.toolbar{display:flex;align-items:center;gap:.5rem}
+main.main{display:flex;gap:1rem;padding:1rem}
+#board{background:#1e293b;touch-action:none}
+#inventory{display:flex;flex-direction:column;gap:.5rem;max-width:160px}
+.piece-thumb{display:flex;align-items:center;gap:.5rem;cursor:grab}
+.piece-thumb canvas{border:1px solid var(--muted);background:#1e293b}
 button{background:var(--accent);color:#002533;border:0;border-radius:.5rem;padding:.5rem .75rem;cursor:pointer}
 button:hover{filter:brightness(1.05)}
-#output{margin-top:1rem;color:var(--muted)}
-
+footer#status{padding:.5rem 1rem;border-top:1px solid #1f2937;color:var(--muted)}
