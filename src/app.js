@@ -564,7 +564,7 @@ function init() {
         if (solveStatusEl) solveStatusEl.textContent = `Auto-Fill: Nodes ${nodes} • Depth ${stats.depth} • Placed ${preview.length}`;
         renderer.requestDraw();
         if (DEBUG) dbg('tick', { nodes: stats.nodes, depth: stats.depth, placed: preview.length });
-      });
+      }, DEBUG ? (type, payload) => dbg(type, payload) : null);
     } catch (err) {
       dbg('error', err);
       if (solveStatusEl) solveStatusEl.textContent = 'Auto-Fill error (see console).';
@@ -638,16 +638,17 @@ function init() {
 
 // -------------------- Solver --------------------
 // Async variant with periodic preview updates
-async function solveRemainingAsync(state, onTick) {
+async function solveRemainingAsync(state, onTick, debugLog) {
   const size = state.board.size;
   const cells = state.board.cells.map((row) => row.slice());
+  // Build available pools by size and a randomized size order
   const available = new Map();
   for (let s = 1; s <= 8; s++) available.set(s, []);
   for (const p of state.inventory) if (!p.placed) available.get(p.size).push(p);
-  // Randomize order of sizes that still have available pieces; also shuffle pools
   const sizesOrder = [...available.keys()].filter((s) => (available.get(s) || []).length > 0);
   shuffleInPlace(sizesOrder);
   for (const s of sizesOrder) shuffleInPlace(available.get(s));
+  if (debugLog) debugLog('sizesOrder', sizesOrder.map((s) => s * s));
 
   const placements = []; // {pieceId,x,y,size}
   const stats = { nodes: 0, depth: 0 };
@@ -658,10 +659,18 @@ async function solveRemainingAsync(state, onTick) {
   onTick?.({ nodes: 0, depth: 0 }, []);
   await sleep(0);
 
-  const findNextEmpty = () => {
-    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) if (cells[y][x] === 0) return { x, y };
+  // Debug: sequence length of attempted piece areas (size^2)
+  const attemptSeq = [];
+
+  // Simple scan: choose the first empty cell (row-major)
+  function findNextEmpty() {
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        if (cells[y][x] === 0) return { x, y };
+      }
+    }
     return null;
-  };
+  }
   const canPlaceAt = (x, y, s) => {
     if (x + s > size || y + s > size) return false;
     for (let j = 0; j < s; j++) for (let i = 0; i < s; i++) if (cells[y + j][x + i] !== 0) return false;
@@ -673,14 +682,17 @@ async function solveRemainingAsync(state, onTick) {
   async function backtrack(depth) {
     if (cancelled) return false;
     const spot = findNextEmpty();
-    if (!spot) return true;
+    if (!spot) return true; // no empty cells left
     const { x, y } = spot;
     stats.depth = Math.max(stats.depth, depth);
+    // Iterate sizes in randomized order, using pools
     for (const s of sizesOrder) {
       if (cancelled) return false;
       const pool = available.get(s);
       if (!pool || pool.length === 0) continue;
       if (!canPlaceAt(x, y, s)) continue;
+      // Debug: record attempted area
+      if (debugLog) attemptSeq.push(s * s);
       const piece = pool.pop();
       doPlace(x, y, s, piece.id);
       placements.push({ pieceId: piece.id, x, y, size: s });
@@ -709,12 +721,19 @@ async function solveRemainingAsync(state, onTick) {
   } finally {
     state._cancelSolve = null;
   }
-  if (cancelled) return { ok: false, reason: 'cancel' };
-  if (!solved) return { ok: false };
+  if (cancelled) {
+    if (debugLog) debugLog('orderTotal', attemptSeq.length);
+    return { ok: false, reason: 'cancel' };
+  }
+  if (!solved) {
+    if (debugLog) debugLog('orderTotal', attemptSeq.length);
+    return { ok: false };
+  }
 
   const steps = [];
   for (const pl of placements) {
     const piece = state.inventory.find((p) => p.id === pl.pieceId);
+    if (!piece) continue;
     if (piece.placed) continue;
     piece.x = pl.x; piece.y = pl.y; piece.placed = true;
     state.board.place(piece, pl.x, pl.y);
