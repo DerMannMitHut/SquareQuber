@@ -572,6 +572,7 @@ function init() {
   solveBtn.addEventListener('click', async () => {
     if (state.solving) {
       if (state._cancelSolve) state._cancelSolve();
+      if (solveStatusEl) solveStatusEl.textContent = 'Auto-Fill cancelling…';
       return;
     }
     state.solving = true;
@@ -667,6 +668,9 @@ async function solveRemainingAsync(state, onTick) {
   let lastTick = 0;
   let cancelled = false;
   state._cancelSolve = () => { cancelled = true; };
+  // Initial tick so UI shows activity immediately
+  onTick?.({ nodes: 0, depth: 0 }, []);
+  await sleep(0);
 
   const findNextEmpty = () => {
     for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) if (cells[y][x] === 0) return { x, y };
@@ -687,6 +691,7 @@ async function solveRemainingAsync(state, onTick) {
     const { x, y } = spot;
     stats.depth = Math.max(stats.depth, depth);
     for (const s of sizesOrder) {
+      if (cancelled) return false;
       const pool = available.get(s);
       if (!pool || pool.length === 0) continue;
       if (!canPlaceAt(x, y, s)) continue;
