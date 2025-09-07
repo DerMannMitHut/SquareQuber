@@ -64,8 +64,8 @@ main.main {
 
 #board {
   background: #1e293b;
-  /* Use custom gesture handling: 1-finger = drag piece, 2-finger = pan page */
-  touch-action: none;
+  /* Native panning when not dragging */
+  touch-action: pan-x pan-y;
   overscroll-behavior: contain;
 }
 
@@ -134,3 +134,4 @@ body.solving #inventory {
   -ms-user-select: none;
   -webkit-touch-callout: none;
 }
+body.dragging { overflow: hidden; }
