@@ -135,3 +135,14 @@ body.solving #inventory {
   -webkit-touch-callout: none;
 }
 body.dragging { overflow: hidden; }
+
+/* Fullscreen transparent overlay to swallow touch events during drag */
+.drag-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: auto;
+  touch-action: none;
+  background: transparent;
+  cursor: grabbing;
+  z-index: 9999;
+}

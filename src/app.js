@@ -305,6 +305,17 @@ function init() {
       this.origY = piece.y;
       this.wasPlaced = piece.placed;
       document.body.classList.add('dragging');
+      // Install overlay to swallow touch scroll/gestures during drag
+      if (!this.overlayEl) {
+        const ov = document.createElement('div');
+        ov.className = 'drag-overlay';
+        // Prevent default on any pointer/touch on the overlay
+        ov.addEventListener('touchmove', (ev) => { if (ev.cancelable) ev.preventDefault(); }, { passive: false });
+        ov.addEventListener('pointermove', (ev) => { if (ev.cancelable) ev.preventDefault(); });
+        ov.addEventListener('wheel', (ev) => { ev.preventDefault(); }, { passive: false });
+        document.body.appendChild(ov);
+        this.overlayEl = ov;
+      }
       if (piece.placed) this.state.board.remove(piece);
       piece.placed = false;
       this.offsetX = px;
@@ -393,6 +404,10 @@ function init() {
     onUp(_e, move, up) {
       if (!this.active) return;
       document.body.classList.remove('dragging');
+       if (this.overlayEl) {
+         try { this.overlayEl.remove(); } catch {}
+         this.overlayEl = null;
+       }
       try { this.canvas.releasePointerCapture && this.canvas.releasePointerCapture(_e.pointerId); } catch {}
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
