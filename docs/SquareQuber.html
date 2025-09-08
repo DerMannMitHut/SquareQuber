@@ -348,9 +348,9 @@ function init() {
     return { cx, cy };
   }
 
-  // Status formatting
-  function formatStatus(overlap) {
-    return `Filled cells: ${state.board.filled}/1296 • Overlap: ${overlap ? 'Yes' : 'No'}`;
+  // Status formatting removed (no Filled/Overlap in status line)
+  function formatStatus(_overlap) {
+    return '';
   }
 
   class DragController {
@@ -554,13 +554,13 @@ function init() {
   }
   function dbg(...args) { if (DEBUG) { console.log('[AutoFill]', ...args); } }
 
-  function updateStatus(overlap) {
+  function updateStatus(_overlap) {
     progressEl.textContent = `${state.board.filled}/1296`;
-    if (solveStatusEl && !state.solving) solveStatusEl.textContent = formatStatus(overlap);
+    if (solveStatusEl && !state.solving) solveStatusEl.textContent = '';
   }
 
   function clearSolveStatus() {
-    if (solveStatusEl && !state.solving) solveStatusEl.textContent = formatStatus(false);
+    if (solveStatusEl && !state.solving) solveStatusEl.textContent = '';
   }
 
   // ---- Puzzle (givens) parsing/generation ----
