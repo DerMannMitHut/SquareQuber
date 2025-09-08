@@ -520,6 +520,7 @@ function init() {
   const solveBtn = document.getElementById('solveBtn');
   const shareBtn = document.getElementById('shareBtn');
   const checkBtn = document.getElementById('checkBtn');
+  const unfixBtn = document.getElementById('unfixBtn');
   const zoomInput = document.getElementById('zoom');
   const congratsEl = document.getElementById('congrats');
   const congratsCloseBtn = document.getElementById('congratsClose');
@@ -737,6 +738,7 @@ function init() {
     if (shareBtn) shareBtn.hidden = true;
     if (solveBtn) solveBtn.hidden = true;
     if (checkBtn) checkBtn.hidden = true;
+    if (unfixBtn) unfixBtn.hidden = true;
     renderInventory();
     renderer.requestDraw();
     updateStatus(false);
@@ -788,6 +790,7 @@ function init() {
       if (shareBtn) shareBtn.hidden = false;
       if (solveBtn) solveBtn.hidden = false;
       if (checkBtn) checkBtn.hidden = false;
+      if (unfixBtn) unfixBtn.hidden = false;
       // Entering creator mode disables congrats condition going forward
       hideCongrats();
       updateStatus(false);
@@ -813,6 +816,17 @@ function init() {
         if (solveStatusEl) solveStatusEl.textContent = 'Check: error (see console).';
         console.error('[check] error', err);
       }
+    });
+  }
+
+  if (unfixBtn) {
+    unfixBtn.addEventListener('click', () => {
+      let changed = false;
+      for (const p of state.inventory) {
+        if (p.fixed) { p.fixed = false; changed = true; }
+      }
+      if (changed && solveStatusEl) solveStatusEl.textContent = 'Givens converted to normal pieces';
+      renderer.requestDraw();
     });
   }
 
