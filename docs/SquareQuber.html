@@ -322,6 +322,8 @@ function init() {
   function drawCenteredLabel(ctx, text, x, y, w, h) {
     const size = Math.max(10, Math.min(w, h) * 0.45);
     ctx.save();
+    // Ensure text outline is solid (not dashed)
+    if (ctx.setLineDash) ctx.setLineDash([]);
     ctx.font = `${size}px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
