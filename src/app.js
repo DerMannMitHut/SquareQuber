@@ -93,6 +93,8 @@ function init() {
       this.solving = false;
       this.solverPreview = null; // [{x,y,size}]
       this._cancelSolve = null;
+      this.autoFillUsed = false;
+      this.congratsShown = false;
     }
     hardReset() {
       // Remove everything including givens
@@ -103,6 +105,8 @@ function init() {
       this.preview = null;
       this.undo = [];
       this.redo = [];
+      this.autoFillUsed = false;
+      this.congratsShown = false;
     }
     reset() {
       const hasFixed = this.inventory.some((p) => p.fixed);
@@ -120,6 +124,7 @@ function init() {
       this.preview = null;
       this.undo = [];
       this.redo = [];
+      this.congratsShown = false;
     }
     pushStep(step) {
       this.undo.push(step);
@@ -514,6 +519,8 @@ function init() {
   const solveBtn = document.getElementById('solveBtn');
   const shareBtn = document.getElementById('shareBtn');
   const zoomInput = document.getElementById('zoom');
+  const congratsEl = document.getElementById('congrats');
+  const congratsCloseBtn = document.getElementById('congratsClose');
 
   const state = new GameState();
   const renderer = new Renderer(canvas, state);
@@ -527,11 +534,43 @@ function init() {
   function updateStatus(_overlap) {
     progressEl.textContent = `${state.board.filled}/1296`;
     if (solveStatusEl && !state.solving) solveStatusEl.textContent = '';
+    checkCompletion();
   }
 
   function clearSolveStatus() {
     if (solveStatusEl && !state.solving) solveStatusEl.textContent = '';
   }
+
+  // --- Congratulations overlay ---
+  function showCongrats() {
+    if (!congratsEl) return;
+    congratsEl.classList.add('show');
+    congratsEl.setAttribute('aria-hidden', 'false');
+  }
+  function hideCongrats() {
+    if (!congratsEl) return;
+    congratsEl.classList.remove('show');
+    congratsEl.setAttribute('aria-hidden', 'true');
+  }
+  function checkCompletion() {
+    const total = BOARD_SIZE * BOARD_SIZE;
+    if (state.solving) return; // don't show while solving
+    if (state.board.filled >= total) {
+      if (!state.autoFillUsed && !state.congratsShown) {
+        showCongrats();
+        state.congratsShown = true;
+      }
+    } else {
+      hideCongrats();
+      state.congratsShown = false;
+    }
+  }
+  if (congratsEl) {
+    congratsEl.addEventListener('click', (e) => {
+      if (e.target === congratsEl) hideCongrats();
+    });
+  }
+  if (congratsCloseBtn) congratsCloseBtn.addEventListener('click', () => hideCongrats());
 
   // ---- Puzzle (givens) parsing/generation ----
   const BASE36 = '0123456789abcdefghijklmnopqrstuvwxyz';
@@ -690,6 +729,7 @@ function init() {
     renderer.requestDraw();
     updateStatus(false);
     if (solveStatusEl) solveStatusEl.textContent = '';
+    hideCongrats();
   });
 
   if (clearBtn) {
@@ -708,6 +748,7 @@ function init() {
       renderer.requestDraw();
       updateStatus(false);
       clearSolveStatus();
+      hideCongrats();
     });
   }
 
@@ -739,6 +780,7 @@ function init() {
       if (solveStatusEl) solveStatusEl.textContent = 'Auto-Fill cancelling…';
       return;
     }
+    state.autoFillUsed = true;
     state.solving = true;
     document.body.classList.add('solving');
     solveBtn.textContent = 'Cancel';

@@ -27,6 +27,13 @@
       <canvas id="board" width="720" height="720"></canvas>
       <div id="inventory"></div>
     </main>
+    <div id="congrats" class="congrats-overlay" aria-hidden="true">
+      <div class="congrats-card" role="dialog" aria-modal="true" aria-labelledby="congratsTitle">
+        <h2 id="congratsTitle">Congratulations!</h2>
+        <p>You filled the grid without Auto-Fill.</p>
+        <button id="congratsClose">OK</button>
+      </div>
+    </div>
     <script type="module" src="./app.js"></script>
   </body>
 </html>
