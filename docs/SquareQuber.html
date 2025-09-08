@@ -13,8 +13,10 @@
       <h1>SquareQuber <span id="version" class="version">v1.0.32</span></h1>
       <div class="toolbar">
         <button id="newBtn">New</button>
+        <button id="clearBtn" title="Remove all player pieces">Clear</button>
         <button id="undoBtn">Undo</button>
         <button id="solveBtn">Auto-Fill</button>
+        <button id="shareBtn" title="Copy link with givens">Share</button>
         <label>Zoom
           <input id="zoom" type="range" min="0.5" max="2" step="0.1" value="1" />
         </label>
@@ -50,6 +52,7 @@ function init() {
       this.x = 0;
       this.y = 0;
       this.placed = false;
+      this.fixed = false;
       this.w = size;
       this.h = size;
     }
@@ -121,12 +124,28 @@ function init() {
       this.solverPreview = null; // [{x,y,size}]
       this._cancelSolve = null;
     }
-    reset() {
+    hardReset() {
+      // Remove everything including givens
       this.board.clear();
       for (const p of this.inventory) {
+        p.x = 0; p.y = 0; p.placed = false; p.fixed = false;
+      }
+      this.preview = null;
+      this.undo = [];
+      this.redo = [];
+    }
+    reset() {
+      const hasFixed = this.inventory.some((p) => p.fixed);
+      this.board.clear();
+      for (const p of this.inventory) {
+        if (hasFixed && p.fixed && p.placed) continue; // preserve givens
         p.x = 0;
         p.y = 0;
         p.placed = false;
+      }
+      // Reapply fixed pieces onto cleared board
+      if (hasFixed) {
+        for (const p of this.inventory) if (p.fixed && p.placed) this.board.place(p, p.x, p.y);
       }
       this.preview = null;
       this.undo = [];
@@ -224,11 +243,17 @@ function init() {
       const y = piece.y * cs;
       const w = piece.size * cs;
       const h = piece.size * cs;
-      ctx.fillStyle = COLORS[(piece.size - 1) % COLORS.length];
+      const base = COLORS[(piece.size - 1) % COLORS.length];
+      ctx.fillStyle = piece.fixed ? darkenHex(base, 0.75) : base;
       ctx.fillRect(x, y, w, h);
       ctx.save();
       ctx.lineWidth = 1;
-      ctx.strokeStyle = TILE_BORDER_COLOR;
+      if (piece.fixed) {
+        ctx.setLineDash([3, 3]);
+        ctx.strokeStyle = '#ffffff';
+      } else {
+        ctx.strokeStyle = TILE_BORDER_COLOR;
+      }
       ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
       const label = String(piece.size * piece.size);
       drawCenteredLabel(ctx, label, x, y, w, h);
@@ -270,6 +295,28 @@ function init() {
     const g = (bigint >> 8) & 255;
     const b = bigint & 255;
     return `rgba(${r},${g},${b},${alpha})`;
+  }
+
+  function parseHex(hex) {
+    const h = hex.replace('#', '').toLowerCase();
+    const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+    const bigint = parseInt(full, 16);
+    const r = (bigint >> 16) & 255;
+    const g = (bigint >> 8) & 255;
+    const b = bigint & 255;
+    return { r, g, b };
+  }
+  function toHex(r, g, b) {
+    const c = (v) => v.toString(16).padStart(2, '0');
+    return `#${c(r)}${c(g)}${c(b)}`;
+  }
+  function darkenHex(hex, factor) {
+    const { r, g, b } = parseHex(hex);
+    const f = Math.max(0, Math.min(1, factor));
+    const rr = Math.max(0, Math.min(255, Math.round(r * f)));
+    const gg = Math.max(0, Math.min(255, Math.round(g * f)));
+    const bb = Math.max(0, Math.min(255, Math.round(b * f)));
+    return toHex(rr, gg, bb);
   }
 
   function drawCenteredLabel(ctx, text, x, y, w, h) {
@@ -361,7 +408,7 @@ function init() {
       const x = Math.floor(cx / cs);
       const y = Math.floor(cy / cs);
       const piece = this.state.inventory.find(
-        (p) => p.placed && x >= p.x && x < p.x + p.size && y >= p.y && y < p.y + p.size
+        (p) => p.placed && !p.fixed && x >= p.x && x < p.x + p.size && y >= p.y && y < p.y + p.size
       );
       if (!piece) return; // touching empty grid: allow native panning
       const px = cx - piece.x * cs;
@@ -388,7 +435,7 @@ function init() {
       const x = Math.floor(cx / cs);
       const y = Math.floor(cy / cs);
       const piece = this.state.inventory.find(
-        (p) => p.placed && x >= p.x && x < p.x + p.size && y >= p.y && y < p.y + p.size
+        (p) => p.placed && !p.fixed && x >= p.x && x < p.x + p.size && y >= p.y && y < p.y + p.size
       );
       if (!piece) return;
       this.state.board.remove(piece);
@@ -490,8 +537,10 @@ function init() {
   const solveStatusEl = document.getElementById('solveStatus');
   const progressEl = document.getElementById('progress');
   const newBtn = document.getElementById('newBtn');
+  const clearBtn = document.getElementById('clearBtn');
   const undoBtn = document.getElementById('undoBtn');
   const solveBtn = document.getElementById('solveBtn');
+  const shareBtn = document.getElementById('shareBtn');
   const zoomInput = document.getElementById('zoom');
 
   const state = new GameState();
@@ -510,6 +559,75 @@ function init() {
 
   function clearSolveStatus() {
     if (solveStatusEl && !state.solving) solveStatusEl.textContent = formatStatus(false);
+  }
+
+  // ---- Puzzle (givens) parsing/generation ----
+  const BASE36 = '0123456789abcdefghijklmnopqrstuvwxyz';
+  function b36ToIntChar(ch) { const i = BASE36.indexOf(String(ch).toLowerCase()); return i >= 0 ? i : -1; }
+  function isSizeChar(ch) { return ch >= '1' && ch <= '8'; }
+  function parsePuzzleString(s) {
+    const out = [];
+    if (!s) return out;
+    const str = s.trim();
+    if (str.length % 3 !== 0) throw new Error('length must be multiple of 3');
+    for (let i = 0; i < str.length; i += 3) {
+      const sz = str[i]; const xch = str[i + 1]; const ych = str[i + 2];
+      if (!isSizeChar(sz)) throw new Error(`bad size '${sz}' at ${i}`);
+      const size = parseInt(sz, 10);
+      const x = b36ToIntChar(xch), y = b36ToIntChar(ych);
+      if (x < 0 || y < 0) throw new Error(`bad coord at ${i + 1}`);
+      out.push({ size, x, y });
+    }
+    return out;
+  }
+  function toPuzzleString(items) {
+    let s = '';
+    for (const it of items) {
+      const x = BASE36[it.x]; const y = BASE36[it.y];
+      if (x == null || y == null) continue;
+      s += String(it.size) + x + y;
+    }
+    return s;
+  }
+  function applyPuzzleFromQuery() {
+    const u = new URL(window.location.href);
+    const q = u.searchParams.get('p') || u.searchParams.get('q');
+    if (!q) return;
+    let items;
+    try { items = parsePuzzleString(q); }
+    catch (err) { if (solveStatusEl) solveStatusEl.textContent = `Puzzle error: ${err.message}`; return; }
+    // Validate counts
+    const need = new Map();
+    for (const it of items) need.set(it.size, (need.get(it.size) || 0) + 1);
+    for (const [size, cnt] of need) {
+      const avail = state.inventory.filter((p) => p.size === size).length;
+      if (cnt > avail) { if (solveStatusEl) solveStatusEl.textContent = `Puzzle error: need ${cnt} of size ${size}`; return; }
+    }
+    // Place and lock
+    for (const it of items) {
+      if (!state.board.inBounds(it.x, it.y, it.size) || state.board.overlap(it.x, it.y, it.size)) {
+        if (solveStatusEl) solveStatusEl.textContent = 'Puzzle error: overlap';
+        // rollback
+        for (const p of state.inventory) if (p.fixed) { p.fixed = false; p.placed = false; }
+        state.board.clear();
+        return;
+      }
+      const piece = state.inventory.find((p) => p.size === it.size && !p.placed);
+      if (!piece) { if (solveStatusEl) solveStatusEl.textContent = 'Puzzle error: allocation'; return; }
+      piece.x = it.x; piece.y = it.y; piece.placed = true; piece.fixed = true;
+      state.board.place(piece, it.x, it.y);
+    }
+    if (solveStatusEl) solveStatusEl.textContent = `Puzzle mode: ${items.length} givens`;
+  }
+  function collectFixedPieces() {
+    const out = [];
+    for (const p of state.inventory) if (p.fixed && p.placed) out.push({ size: p.size, x: p.x, y: p.y });
+    return out;
+  }
+  function collectPlacedPieces() {
+    const out = [];
+    for (const p of state.inventory) if (p.placed) out.push({ size: p.size, x: p.x, y: p.y });
+    return out;
   }
 
   function renderInventory() {
@@ -592,12 +710,46 @@ function init() {
   });
 
   newBtn.addEventListener('click', () => {
-    state.reset();
+    if (state.solving) return;
+    const ok = window.confirm('Start a new puzzle? This removes all givens and placements.');
+    if (!ok) return;
+    state.hardReset();
     renderInventory();
     renderer.requestDraw();
     updateStatus(false);
     if (solveStatusEl) solveStatusEl.textContent = '';
   });
+
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      if (state.solving) return;
+      const steps = [];
+      for (const p of state.inventory) {
+        if (p.placed && !p.fixed) {
+          state.board.remove(p);
+          steps.push({ pieceId: p.id, fromX: p.x, fromY: p.y, fromPlaced: true, toX: 0, toY: 0, toPlaced: false });
+          p.placed = false;
+        }
+      }
+      if (steps.length) state.pushStep({ batch: true, steps });
+      renderInventory();
+      renderer.requestDraw();
+      updateStatus(false);
+      clearSolveStatus();
+    });
+  }
+
+  if (shareBtn) {
+    shareBtn.addEventListener('click', async () => {
+      const items = collectPlacedPieces();
+      const ps = toPuzzleString(items);
+      const url = new URL(window.location.href);
+      if (ps) url.searchParams.set('p', ps); else url.searchParams.delete('p');
+      const str = url.toString();
+      try { await navigator.clipboard.writeText(str); if (solveStatusEl) solveStatusEl.textContent = 'Link copied'; }
+      catch { if (solveStatusEl) solveStatusEl.textContent = str; }
+    });
+  }
 
   undoBtn.addEventListener('click', () => {
     state.undoStep();
@@ -673,6 +825,7 @@ function init() {
     const footer = document.getElementById('status');
     const gs = window.getComputedStyle(mainEl);
     const padX = (parseFloat(gs.paddingLeft) || 0) + (parseFloat(gs.paddingRight) || 0);
+    const padY = (parseFloat(gs.paddingTop) || 0) + (parseFloat(gs.paddingBottom) || 0);
     const gap = parseFloat(gs.gap) || 0;
     const canvasBaseW = canvas.width;
     const canvasBaseH = canvas.height;
@@ -681,7 +834,9 @@ function init() {
     const viewportH = window.innerHeight;
     const headerH = header?.offsetHeight || 0;
     const footerH = footer?.offsetHeight || 0;
-    const availH = Math.max(200, viewportH - headerH - footerH - 8);
+    // Safety margin and vertical paddings to prevent clipping of the last row
+    const SAFE = 8; // px
+    const availH = Math.max(200, viewportH - headerH - footerH - padY - SAFE);
 
     let sW;
     if (portrait) {
@@ -693,7 +848,8 @@ function init() {
       sW = availW / canvasBaseW;
     }
     const sH = availH / canvasBaseH;
-    const scale = clamp(Math.min(sW, sH), ZOOM_MIN, ZOOM_MAX);
+    // Slight deflate to reduce the risk of rounding-induced clipping
+    const scale = clamp(Math.min(sW, sH) * 0.995, ZOOM_MIN, ZOOM_MAX);
     renderer.setScale(scale);
     zoomInput.value = String(scale);
   }
@@ -701,7 +857,9 @@ function init() {
   window.addEventListener('resize', autoScaleToFit, { passive: true });
   window.addEventListener('orientationchange', autoScaleToFit);
   autoScaleToFit();
-
+  // Load puzzle givens from URL (optional)
+  applyPuzzleFromQuery();
+  
   renderInventory();
   renderer.requestDraw();
   updateStatus(false);
