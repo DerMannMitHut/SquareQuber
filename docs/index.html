@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SquareQuber</title>
-    <style>:root{--bg:#0f172a;--fg:#e5e7eb;--accent:#38bdf8;--muted:#94a3b8}*{box-sizing:border-box}html,body{height:100%}body{margin:0;font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;color:var(--fg);background:var(--bg);-webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;-webkit-user-select:none;-ms-user-select:none;-webkit-touch-callout:none}.app-header{display:flex;align-items:flex-start;gap:1rem;padding:1rem;border-bottom:1px solid #1f2937;flex-wrap:wrap}h1 .version{font-size:0.85em;font-weight:normal;color:var(--muted)}.toolbar{display:flex;align-items:center;gap:0.5rem}.solve-status{margin-top:0.25rem;color:var(--muted);flex-basis:100%;min-height:1.25rem;line-height:1.25rem}main.main{display:flex;gap:1rem;padding:1rem}#board{background:#1e293b;touch-action:pan-x pan-y;overscroll-behavior:contain}#inventory{display:flex;flex-direction:column;gap:0.5rem;max-width:160px}.piece-thumb{display:flex;align-items:center;gap:0.5rem;cursor:grab;touch-action:none}.piece-thumb canvas{border:1px solid var(--muted);background:#1e293b}button{background:var(--accent);color:#002533;border:0;border-radius:0.5rem;padding:0.5rem 0.75rem;cursor:pointer}button:hover{filter:brightness(1.05)}body.solving #board,body.solving #inventory{pointer-events:none;opacity:0.9}@media (orientation:portrait){.toolbar{flex-wrap:wrap}main.main{flex-direction:column;padding:0.5rem;gap:0.5rem}#inventory{flex-direction:row;flex-wrap:wrap;max-width:none;gap:0.5rem}.piece-thumb{padding:0.25rem 0}button{padding:0.6rem 0.9rem}}.app-header,.solve-status,main,#board,#inventory{user-select:none;-webkit-user-select:none;-ms-user-select:none;-webkit-touch-callout:none}body.dragging{overflow:hidden}.drag-overlay{position:fixed;inset:0;pointer-events:auto;touch-action:none;background:transparent;cursor:grabbing;z-index:9999}.congrats-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:9998}.congrats-overlay.show{display:flex}.congrats-card{background:#0b1220;color:var(--fg);border:1px solid #1f2937;border-radius:12px;padding:1.25rem 1.5rem;min-width:260px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,0.35)}.congrats-card h2{margin:0 0 0.5rem 0}.congrats-card p{margin:0 0 1rem 0;color:var(--muted)}.congrats-card button{width:100%}</style>
+    <style>:root{--bg:#0f172a;--fg:#e5e7eb;--accent:#38bdf8;--muted:#94a3b8}*{box-sizing:border-box}html,body{height:100%}body{margin:0;font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;color:var(--fg);background:var(--bg);-webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;-webkit-user-select:none;-ms-user-select:none;-webkit-touch-callout:none}.app-header{display:flex;align-items:flex-start;gap:1rem;padding:1rem;border-bottom:1px solid #1f2937;flex-wrap:wrap}h1 .version{font-size:0.85em;font-weight:normal;color:var(--muted)}.toolbar{display:flex;align-items:center;gap:0.5rem}.solve-status{margin-top:0.25rem;color:var(--muted);flex-basis:100%;min-height:1.25rem;line-height:1.25rem}main.main{display:flex;gap:1rem;padding:1rem}#board{background:#1e293b;touch-action:pan-x pan-y;overscroll-behavior:contain}#inventory{display:flex;flex-direction:column;gap:0.5rem;max-width:160px}.piece-thumb{display:flex;align-items:center;gap:0.5rem;cursor:grab;touch-action:none}.piece-thumb canvas{border:1px solid var(--muted);background:#1e293b}button{background:var(--accent);color:#002533;border:0;border-radius:0.5rem;padding:0.5rem 0.75rem;cursor:pointer}button:hover{filter:brightness(1.05)}#creatorBtn.active{filter:saturate(1.2) brightness(1.12);box-shadow:0 0 0 2px rgba(56,189,248,0.7)}#creatorBtn.active:disabled{opacity:1;cursor:default}body.solving #board,body.solving #inventory{pointer-events:none;opacity:0.9}@media (orientation:portrait){.toolbar{flex-wrap:wrap}main.main{flex-direction:column;padding:0.5rem;gap:0.5rem}#inventory{flex-direction:row;flex-wrap:wrap;max-width:none;gap:0.5rem}.piece-thumb{padding:0.25rem 0}button{padding:0.6rem 0.9rem}}.app-header,.solve-status,main,#board,#inventory{user-select:none;-webkit-user-select:none;-ms-user-select:none;-webkit-touch-callout:none}body.dragging{overflow:hidden}.drag-overlay{position:fixed;inset:0;pointer-events:auto;touch-action:none;background:transparent;cursor:grabbing;z-index:9999}.congrats-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:9998}.congrats-overlay.show{display:flex}.congrats-card{background:#0b1220;color:var(--fg);border:1px solid #1f2937;border-radius:12px;padding:1.25rem 1.5rem;min-width:260px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,0.35)}.congrats-card h2{margin:0 0 0.5rem 0}.congrats-card p{margin:0 0 1rem 0;color:var(--muted)}.congrats-card button{width:100%}</style>
     <link rel="icon" href="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjgiIGhlaWdodD0iMTI4IiB2aWV3Qm94PSIwIDAgMTI4IDEyOCI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzM4YmRmOCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMyMmQzZWUiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMTIiIGhlaWdodD0iMTEyIiB4PSI4IiB5PSI4IiByeD0iMTQiIHJ5PSIxNCIgZmlsbD0idXJsKCNnKSIvPgogIDxyZWN0IHdpZHRoPSI0NCIgaGVpZ2h0PSI0NCIgeD0iMjIiIHk9IjIyIiByeD0iNiIgcnk9IjYiIGZpbGw9IiMwZjE3MmEiIG9wYWNpdHk9Ii45Ii8+CiAgPHJlY3Qgd2lkdGg9IjQ0IiBoZWlnaHQ9IjQ0IiB4PSI2MiIgeT0iNjIiIHJ4PSI2IiByeT0iNiIgZmlsbD0iIzBmMTcyYSIgb3BhY2l0eT0iLjkiLz4KICA8Y2lyY2xlIGN4PSI2NCIgY3k9IjY0IiByPSI2IiBmaWxsPSIjMGYxNzJhIi8+Cjwvc3ZnPgoK" />
   <script>window.__APP_VERSION__="1.1.0";</script>
   </head>
@@ -15,8 +15,10 @@
         <button id="newBtn">New</button>
         <button id="clearBtn" title="Remove all player pieces">Clear</button>
         <button id="undoBtn">Undo</button>
-        <button id="solveBtn">Auto-Fill</button>
-        <button id="shareBtn" title="Copy link with givens">Share</button>
+        <button id="creatorBtn" title="Enable puzzle creator tools">Creator Mode</button>
+        <button id="solveBtn" hidden>Auto-Fill</button>
+        <button id="shareBtn" hidden title="Copy link with givens">Share</button>
+        <button id="checkBtn" hidden title="Check puzzle has unique solution">Check</button>
         <label>Zoom
           <input id="zoom" type="range" min="0.5" max="2" step="0.1" value="1" />
         </label>
@@ -144,6 +146,7 @@ function init() {
       this.redo = [];
       this.autoFillUsed = false;
       this.congratsShown = false;
+      this.creatorMode = false;
     }
     reset() {
       const hasFixed = this.inventory.some((p) => p.fixed);
@@ -555,11 +558,13 @@ function init() {
   const undoBtn = document.getElementById('undoBtn');
   const solveBtn = document.getElementById('solveBtn');
   const shareBtn = document.getElementById('shareBtn');
+  const checkBtn = document.getElementById('checkBtn');
   const zoomInput = document.getElementById('zoom');
   const congratsEl = document.getElementById('congrats');
   const congratsCloseBtn = document.getElementById('congratsClose');
 
   const state = new GameState();
+  state.creatorMode = false;
   const renderer = new Renderer(canvas, state);
   const versionEl = document.getElementById('version');
   if (versionEl) {
@@ -593,7 +598,7 @@ function init() {
     const total = BOARD_SIZE * BOARD_SIZE;
     if (state.solving) return; // don't show while solving
     if (state.board.filled >= total) {
-      if (!state.autoFillUsed && !state.congratsShown) {
+      if (!state.creatorMode && !state.congratsShown) {
         showCongrats();
         state.congratsShown = true;
       }
@@ -762,6 +767,15 @@ function init() {
     const ok = window.confirm('Start a new puzzle? This removes all givens and placements.');
     if (!ok) return;
     state.hardReset();
+    // Exit Creator Mode UI on New
+    if (creatorBtn) {
+      creatorBtn.disabled = false;
+      creatorBtn.classList.remove('active');
+      creatorBtn.removeAttribute('aria-pressed');
+    }
+    if (shareBtn) shareBtn.hidden = true;
+    if (solveBtn) solveBtn.hidden = true;
+    if (checkBtn) checkBtn.hidden = true;
     renderInventory();
     renderer.requestDraw();
     updateStatus(false);
@@ -798,6 +812,46 @@ function init() {
       const str = url.toString();
       try { await navigator.clipboard.writeText(str); if (solveStatusEl) solveStatusEl.textContent = 'Link copied'; }
       catch { if (solveStatusEl) solveStatusEl.textContent = str; }
+    });
+  }
+
+  // Creator Mode: reveal Share, Auto-Fill, Check; cannot be turned off
+  if (creatorBtn) {
+    creatorBtn.addEventListener('click', () => {
+      if (state.creatorMode) return;
+      state.creatorMode = true;
+      creatorBtn.disabled = true;
+      creatorBtn.classList.add('active');
+      creatorBtn.setAttribute('aria-pressed', 'true');
+      if (solveStatusEl) solveStatusEl.textContent = 'Creator Mode enabled';
+      if (shareBtn) shareBtn.hidden = false;
+      if (solveBtn) solveBtn.hidden = false;
+      if (checkBtn) checkBtn.hidden = false;
+      // Entering creator mode disables congrats condition going forward
+      hideCongrats();
+      updateStatus(false);
+    });
+  }
+
+  if (checkBtn) {
+    checkBtn.addEventListener('click', async () => {
+      if (state.solving) return;
+      if (solveStatusEl) solveStatusEl.textContent = 'Check: running…';
+      try {
+        const { count } = await countSolutionsAsync(state, 2, (stats) => {
+          if (solveStatusEl) solveStatusEl.textContent = `Check: exploring… nodes ${stats.nodes}`;
+        });
+        if (count === 0) {
+          if (solveStatusEl) solveStatusEl.textContent = 'Check: no solution.';
+        } else if (count === 1) {
+          if (solveStatusEl) solveStatusEl.textContent = 'Check: unique solution.';
+        } else {
+          if (solveStatusEl) solveStatusEl.textContent = 'Check: multiple solutions.';
+        }
+      } catch (err) {
+        if (solveStatusEl) solveStatusEl.textContent = 'Check: error (see console).';
+        console.error('[check] error', err);
+      }
     });
   }
 
@@ -1035,6 +1089,56 @@ function shuffleInPlace(arr) {
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
+}
+
+// Count number of solutions (up to 'limit') from the current board state.
+// Does not modify UI state; simple backtracking with finite piece counts.
+async function countSolutionsAsync(state, limit = 2, onTick) {
+  const size = state.board.size;
+  const cells = state.board.cells.map((row) => row.slice());
+  // Build counts of remaining pieces by size
+  const counts = new Array(9).fill(0);
+  for (const p of state.inventory) if (!p.placed) counts[p.size]++;
+
+  const canPlaceAt = (x, y, s) => {
+    if (x + s > size || y + s > size) return false;
+    for (let j = 0; j < s; j++) for (let i = 0; i < s; i++) if (cells[y + j][x + i] !== 0) return false;
+    return true;
+  };
+  const doPlace = (x, y, s, id) => { for (let j = 0; j < s; j++) for (let i = 0; i < s; i++) cells[y + j][x + i] = id; };
+  const unPlace = (x, y, s) => { for (let j = 0; j < s; j++) for (let i = 0; i < s; i++) cells[y + j][x + i] = 0; };
+  const findNextEmpty = (startingRow) => {
+    for (let y = startingRow; y < size; y++) {
+      for (let x = 0; x < size; x++) if (cells[y][x] === 0) return { x, y };
+    }
+    return null;
+  };
+  let solutions = 0;
+  const stats = { nodes: 0 };
+  let lastTick = 0;
+  async function backtrack(startingRow) {
+    if (solutions >= limit) return true; // early cut
+    const spot = findNextEmpty(startingRow);
+    if (!spot) { solutions++; return solutions >= limit; }
+    const { x, y } = spot;
+    // Try larger sizes first for quicker pruning
+    for (let s = 8; s >= 1; s--) {
+      if (counts[s] === 0) continue;
+      if (!canPlaceAt(x, y, s)) continue;
+      counts[s]--;
+      doPlace(x, y, s, -s); // negative id placeholder
+      stats.nodes++;
+      const now = Date.now();
+      if (onTick && (now - lastTick) >= 200) { lastTick = now; onTick({ nodes: stats.nodes }); await sleep(0); }
+      const stop = await backtrack(y);
+      unPlace(x, y, s);
+      counts[s]++;
+      if (stop) return true;
+    }
+    return false;
+  }
+  await backtrack(0);
+  return { count: solutions, nodes: stats.nodes };
 }
 
 // ---------- Transform helpers ----------

@@ -107,6 +107,7 @@ function init() {
       this.redo = [];
       this.autoFillUsed = false;
       this.congratsShown = false;
+      this.creatorMode = false;
     }
     reset() {
       const hasFixed = this.inventory.some((p) => p.fixed);
@@ -518,11 +519,13 @@ function init() {
   const undoBtn = document.getElementById('undoBtn');
   const solveBtn = document.getElementById('solveBtn');
   const shareBtn = document.getElementById('shareBtn');
+  const checkBtn = document.getElementById('checkBtn');
   const zoomInput = document.getElementById('zoom');
   const congratsEl = document.getElementById('congrats');
   const congratsCloseBtn = document.getElementById('congratsClose');
 
   const state = new GameState();
+  state.creatorMode = false;
   const renderer = new Renderer(canvas, state);
   const versionEl = document.getElementById('version');
   if (versionEl) {
@@ -556,7 +559,7 @@ function init() {
     const total = BOARD_SIZE * BOARD_SIZE;
     if (state.solving) return; // don't show while solving
     if (state.board.filled >= total) {
-      if (!state.autoFillUsed && !state.congratsShown) {
+      if (!state.creatorMode && !state.congratsShown) {
         showCongrats();
         state.congratsShown = true;
       }
@@ -725,6 +728,15 @@ function init() {
     const ok = window.confirm('Start a new puzzle? This removes all givens and placements.');
     if (!ok) return;
     state.hardReset();
+    // Exit Creator Mode UI on New
+    if (creatorBtn) {
+      creatorBtn.disabled = false;
+      creatorBtn.classList.remove('active');
+      creatorBtn.removeAttribute('aria-pressed');
+    }
+    if (shareBtn) shareBtn.hidden = true;
+    if (solveBtn) solveBtn.hidden = true;
+    if (checkBtn) checkBtn.hidden = true;
     renderInventory();
     renderer.requestDraw();
     updateStatus(false);
@@ -761,6 +773,46 @@ function init() {
       const str = url.toString();
       try { await navigator.clipboard.writeText(str); if (solveStatusEl) solveStatusEl.textContent = 'Link copied'; }
       catch { if (solveStatusEl) solveStatusEl.textContent = str; }
+    });
+  }
+
+  // Creator Mode: reveal Share, Auto-Fill, Check; cannot be turned off
+  if (creatorBtn) {
+    creatorBtn.addEventListener('click', () => {
+      if (state.creatorMode) return;
+      state.creatorMode = true;
+      creatorBtn.disabled = true;
+      creatorBtn.classList.add('active');
+      creatorBtn.setAttribute('aria-pressed', 'true');
+      if (solveStatusEl) solveStatusEl.textContent = 'Creator Mode enabled';
+      if (shareBtn) shareBtn.hidden = false;
+      if (solveBtn) solveBtn.hidden = false;
+      if (checkBtn) checkBtn.hidden = false;
+      // Entering creator mode disables congrats condition going forward
+      hideCongrats();
+      updateStatus(false);
+    });
+  }
+
+  if (checkBtn) {
+    checkBtn.addEventListener('click', async () => {
+      if (state.solving) return;
+      if (solveStatusEl) solveStatusEl.textContent = 'Check: running…';
+      try {
+        const { count } = await countSolutionsAsync(state, 2, (stats) => {
+          if (solveStatusEl) solveStatusEl.textContent = `Check: exploring… nodes ${stats.nodes}`;
+        });
+        if (count === 0) {
+          if (solveStatusEl) solveStatusEl.textContent = 'Check: no solution.';
+        } else if (count === 1) {
+          if (solveStatusEl) solveStatusEl.textContent = 'Check: unique solution.';
+        } else {
+          if (solveStatusEl) solveStatusEl.textContent = 'Check: multiple solutions.';
+        }
+      } catch (err) {
+        if (solveStatusEl) solveStatusEl.textContent = 'Check: error (see console).';
+        console.error('[check] error', err);
+      }
     });
   }
 
@@ -998,6 +1050,56 @@ function shuffleInPlace(arr) {
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
+}
+
+// Count number of solutions (up to 'limit') from the current board state.
+// Does not modify UI state; simple backtracking with finite piece counts.
+async function countSolutionsAsync(state, limit = 2, onTick) {
+  const size = state.board.size;
+  const cells = state.board.cells.map((row) => row.slice());
+  // Build counts of remaining pieces by size
+  const counts = new Array(9).fill(0);
+  for (const p of state.inventory) if (!p.placed) counts[p.size]++;
+
+  const canPlaceAt = (x, y, s) => {
+    if (x + s > size || y + s > size) return false;
+    for (let j = 0; j < s; j++) for (let i = 0; i < s; i++) if (cells[y + j][x + i] !== 0) return false;
+    return true;
+  };
+  const doPlace = (x, y, s, id) => { for (let j = 0; j < s; j++) for (let i = 0; i < s; i++) cells[y + j][x + i] = id; };
+  const unPlace = (x, y, s) => { for (let j = 0; j < s; j++) for (let i = 0; i < s; i++) cells[y + j][x + i] = 0; };
+  const findNextEmpty = (startingRow) => {
+    for (let y = startingRow; y < size; y++) {
+      for (let x = 0; x < size; x++) if (cells[y][x] === 0) return { x, y };
+    }
+    return null;
+  };
+  let solutions = 0;
+  const stats = { nodes: 0 };
+  let lastTick = 0;
+  async function backtrack(startingRow) {
+    if (solutions >= limit) return true; // early cut
+    const spot = findNextEmpty(startingRow);
+    if (!spot) { solutions++; return solutions >= limit; }
+    const { x, y } = spot;
+    // Try larger sizes first for quicker pruning
+    for (let s = 8; s >= 1; s--) {
+      if (counts[s] === 0) continue;
+      if (!canPlaceAt(x, y, s)) continue;
+      counts[s]--;
+      doPlace(x, y, s, -s); // negative id placeholder
+      stats.nodes++;
+      const now = Date.now();
+      if (onTick && (now - lastTick) >= 200) { lastTick = now; onTick({ nodes: stats.nodes }); await sleep(0); }
+      const stop = await backtrack(y);
+      unPlace(x, y, s);
+      counts[s]++;
+      if (stop) return true;
+    }
+    return false;
+  }
+  await backtrack(0);
+  return { count: solutions, nodes: stats.nodes };
 }
 
 // ---------- Transform helpers ----------
